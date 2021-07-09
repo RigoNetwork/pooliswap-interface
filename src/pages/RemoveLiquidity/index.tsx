@@ -530,7 +530,7 @@ export default function RemoveLiquidity({
             </LightCard>
             {!showDetailed && (
               <>
-                <AddressInputPanel id="recipient" value={recipient!} onChange={onChangeRecipient} />
+                <AddressInputPanel id="recipient" value={recipient ?? '0x0'} onChange={onChangeRecipient} />
                 <ColumnCenter>
                   <ArrowDown size="16" color={theme.text2} />
                 </ColumnCenter>
@@ -586,7 +586,7 @@ export default function RemoveLiquidity({
 
             {showDetailed && (
               <>
-                <AddressInputPanel id="recipient" value={recipient!} onChange={onChangeRecipient} />
+                <AddressInputPanel id="recipient" value={recipient ?? '0x0'} onChange={onChangeRecipient} />
                 <CurrencyInputPanel
                   value={formattedAmounts[Field.LIQUIDITY]}
                   onUserInput={onLiquidityInput}

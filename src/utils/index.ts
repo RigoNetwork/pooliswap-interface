@@ -2,7 +2,7 @@ import { getAddress } from '@ethersproject/address'
 import { AddressZero } from '@ethersproject/constants'
 import { Contract } from '@ethersproject/contracts'
 import { JsonRpcSigner, Web3Provider } from '@ethersproject/providers'
-import { abi as SWAP_ROUTER_ABI } from '@uniswap/v3-periphery/artifacts/contracts/SwapRouter.sol/SwapRouter.json'
+//import { abi as SWAP_ROUTER_ABI } from '@uniswap/v3-periphery/artifacts/contracts/SwapRouter.sol/SwapRouter.json'
 import { Dragov2_ABI } from '../constants/abis/dragov2'
 //import { ROUTER_ADDRESS } from '../constants'
 import { Token } from '@uniswap/sdk-core'
@@ -55,7 +55,7 @@ export function getRouterContract(_: number, library: Web3Provider, account?: st
 
 // account, recipient are optional
 export function getDragoContract(_: number, library: Web3Provider, account?: string, recipient?: string): Contract {
-  return getContract(recipient!, Dragov2_ABI, library, account)
+  return getContract(recipient ?? '0x0', Dragov2_ABI, library, account)
 }
 
 export function escapeRegExp(string: string): string {
