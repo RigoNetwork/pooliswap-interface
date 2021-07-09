@@ -28,19 +28,20 @@ import { useActiveWeb3React } from '../../hooks/web3'
 // must create separate liquidity adapter (could also use 1 adapter
 // but prob easier for later updates)
 //import { ROUTER_ADDRESS } from '../../constants'
-import { AUniswap_INTERFACE } from '../../constants/abis/auniswap'
+//import { AUniswap_INTERFACE } from '../../constants/abis/auniswap'
 import { useCurrency } from '../../hooks/Tokens'
 import { ApprovalState, useApproveCallback } from '../../hooks/useApproveCallback'
 import useTransactionDeadline from '../../hooks/useTransactionDeadline'
 import { useWalletModalToggle } from '../../state/application/hooks'
 import { Field, Bound } from '../../state/mint/v3/actions'
 // TODO: create custom hook on mint hooks
-import { useSwapActionHandlers, useSwapState } from '../../state/swap/hooks'
+//import { useSwapActionHandlers, useSwapState } from '../../state/swap/hooks'
+import { useSwapState } from '../../state/swap/hooks'
 import { NetworkAlert } from 'components/NetworkAlert/NetworkAlert'
 import { useTransactionAdder } from '../../state/transactions/hooks'
 import { useIsExpertMode, useUserSlippageToleranceWithDefault } from '../../state/user/hooks'
 import { TYPE, ExternalLink } from '../../theme'
-import { getDragoContract } from '../../utils'
+//import { getDragoContract } from '../../utils'
 import { maxAmountSpend } from '../../utils/maxAmountSpend'
 import { Dots } from '../Pool/styleds'
 import { currencyId } from '../../utils/currencyId'
@@ -202,7 +203,7 @@ export default function AddLiquidity({
     {}
   )
 
-  const { onChangeRecipient } = useSwapActionHandlers()
+  //const { onChangeRecipient } = useSwapActionHandlers()
   const { recipient } = useSwapState()
   const { address: recipientAddress } = useENSAddress(recipient)
   const argentWalletContract = useArgentWalletContract()
@@ -285,9 +286,9 @@ export default function AddLiquidity({
   }
 
   async function onAdd() {
-    if (!chainId || !library || !account) return
+    if (!chainId || !library || !account || !recipientAddress) return
 
-    const drago = getDragoContract(chainId, library, account, recipientAddress!)
+    //const drago = getDragoContract(chainId, library, account, recipientAddress)
 
     if (!positionManager || !currencyA || !currencyB) {
       return
