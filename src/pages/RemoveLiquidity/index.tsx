@@ -23,9 +23,8 @@ import AddressInputPanel from '../../components/AddressInputPanel'
 
 import Slider from '../../components/Slider'
 import { Dots } from '../../components/swap/styleds'
-import CurrencyLogo from '../../components/CurrencyLogo'
 import TransactionConfirmationModal, { ConfirmationModalContent } from '../../components/TransactionConfirmationModal'
-import { ROUTER_ADDRESS } from '../../constants'
+import { NONFUNGIBLE_POSITION_MANAGER_ADDRESSES } from '../../constants/addresses'
 import { AUniswap_INTERFACE } from '../../constants/abis/auniswap'
 import { WETH9_EXTENDED } from '../../constants/tokens'
 import { useCurrency } from '../../hooks/Tokens'
@@ -44,23 +43,14 @@ import { useUserSlippageToleranceWithDefault } from '../../state/user/hooks'
 import { StyledInternalLink, TYPE } from '../../theme'
 import { calculateGasMargin } from '../../utils/calculateGasMargin'
 import { calculateSlippageAmount } from '../../utils/calculateSlippageAmount'
-import { calculateGasMargin, calculateSlippageAmount, getDragoContract } from '../../utils'
+import { getDragoContract } from '../../utils'
 import { currencyId } from '../../utils/currencyId'
 import AppBody from '../AppBody'
 import { ClickableText, MaxButton, Wrapper } from '../Pool/styleds'
-import { useApproveCallback, ApprovalState } from '../../hooks/useApproveCallback'
-import { Dots } from '../../components/swap/styleds'
-import { useBurnActionHandlers } from '../../state/burn/hooks'
 // TODO: amend burn hooks to include the following:
 import { useSwapActionHandlers, useSwapState } from '../../state/swap/hooks'
 
-import { useDerivedBurnInfo, useBurnState } from '../../state/burn/hooks'
-import { Field } from '../../state/burn/actions'
-import { useWalletModalToggle } from '../../state/application/hooks'
-import { useUserSlippageToleranceWithDefault } from '../../state/user/hooks'
 import useENSAddress from '../../hooks/useENSAddress'
-import { BigNumber } from '@ethersproject/bignumber'
-import { t, Trans } from '@lingui/macro'
 
 const DEFAULT_REMOVE_LIQUIDITY_SLIPPAGE_TOLERANCE = new Percent(5, 100)
 
@@ -274,7 +264,7 @@ export default function RemoveLiquidity({
         const callData: string | undefined = fragment /*&& isValidMethodArgs(callInputs)*/
               ? AUniswap_INTERFACE.encodeFunctionData(fragment, argsAdapter)
               : undefined
-        args = [ROUTER_ADDRESS, [callData]]
+        args = [NONFUNGIBLE_POSITION_MANAGER_ADDRESSES, [callData]]
         return(
           drago.estimateGas['operateOnExchange'](...args)
             .then((estimateGas) => calculateGasMargin(chainId, estimateGas))
@@ -301,7 +291,7 @@ export default function RemoveLiquidity({
       const callData: string | undefined = fragment /*&& isValidMethodArgs(callInputs)*/
             ? AUniswap_INTERFACE.encodeFunctionData(fragment, argsAdapter)
             : undefined
-      args = [ROUTER_ADDRESS, [callData]]
+      args = [NONFUNGIBLE_POSITION_MANAGER_ADDRESSES, [callData]]
 
       setAttemptingTxn(true)
       // await router[methodName](...args, {
