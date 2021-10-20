@@ -4,7 +4,7 @@ import { Contract } from '@ethersproject/contracts'
 import { JsonRpcSigner, Web3Provider } from '@ethersproject/providers'
 import { abi as IUniswapV2Router02ABI } from '@uniswap/v2-periphery/build/IUniswapV2Router02.json'
 import { Dragov2_ABI } from '../constants/abis/dragov2'
-import { ROUTER_ADDRESS } from '../constants'
+import { V2_ROUTER_ADDRESS } from '../constants/addresses'
 import { Token } from '@uniswap/sdk-core'
 import { FeeAmount } from '@uniswap/v3-sdk'
 
@@ -49,7 +49,7 @@ export function getContract(address: string, ABI: any, library: Web3Provider, ac
 
 // account is optional
 export function getRouterContract(_: number, library: Web3Provider, account?: string): Contract {
-  return getContract(ROUTER_ADDRESS, IUniswapV2Router02ABI, library, account)
+  return getContract(V2_ROUTER_ADDRESS, IUniswapV2Router02ABI, library, account)
 }
 
 // account, recipient are optional
