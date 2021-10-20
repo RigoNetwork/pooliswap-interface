@@ -223,47 +223,6 @@ export default function Menu() {
         <StyledMenuIcon />
       </StyledMenuButton>
 
-<<<<<<< HEAD
-      {open && (
-        <MenuFlyout>
-          <MenuItem id="link" href="https://rigoblock.com/">
-            <Info size={14} />
-            <div>
-              <Trans>About</Trans>
-            </div>
-          </MenuItem>
-          <MenuItem id="link" href="https://docs.rigoblock.com">
-            <BookOpen size={14} />
-            <div>
-              <Trans>Docs</Trans>
-            </div>
-          </MenuItem>
-          <MenuItem href={CODE_LINK}>
-            <Code size={14} />
-            <div>
-              <Trans>Code</Trans>
-            </div>
-          </MenuItem>
-          <MenuItem id="link" href="https://discord.gg/FXd8EU8">
-            <MessageCircle size={14} />
-            <div>
-              <Trans>Discord</Trans>
-            </div>
-          </MenuItem>
-          <MenuItem href="https://info.uniswap.org/">
-            <PieChart size={14} />
-            <div>
-              <Trans>Analytics</Trans>
-            </div>
-          </MenuItem>
-          {showUNIClaimOption && (
-            <UNIbutton onClick={openClaimModal} padding="8px 16px" width="100%" $borderRadius="12px" mt="0.5rem">
-              <Trans>Claim UNI</Trans>
-            </UNIbutton>
-          )}
-        </MenuFlyout>
-      )}
-=======
       {open &&
         (() => {
           switch (menu) {
@@ -273,13 +232,13 @@ export default function Menu() {
             default:
               return (
                 <MenuFlyout>
-                  <MenuItem href="https://uniswap.org/">
+                  <MenuItem href="https://rigoblock.com/">
                     <div>
                       <Trans>About</Trans>
                     </div>
                     <Info opacity={0.6} size={16} />
                   </MenuItem>
-                  <MenuItem href="https://docs.uniswap.org/">
+                  <MenuItem href="https://docs.rigoblock.com/">
                     <div>
                       <Trans>Docs</Trans>
                     </div>
@@ -291,7 +250,7 @@ export default function Menu() {
                     </div>
                     <Code opacity={0.6} size={16} />
                   </MenuItem>
-                  <MenuItem href="https://discord.gg/FCfyBSbCU5">
+                  <MenuItem href="https://discord.gg/FXd8EU8">
                     <div>
                       <Trans>Discord</Trans>
                     </div>
@@ -328,7 +287,6 @@ export default function Menu() {
               )
           }
         })()}
->>>>>>> 5e8d725e0e0bd8d84c5e78079cbee9ab1a7f95b4
     </StyledMenu>
   )
 }
