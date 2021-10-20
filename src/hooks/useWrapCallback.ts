@@ -31,17 +31,14 @@ export default function useWrapCallback(
 ): { wrapType: WrapType; execute?: undefined | (() => Promise<void>); inputError?: string } {
   const { chainId } = useActiveWeb3React()
   const wethContract = useWETHContract()
-<<<<<<< HEAD
 
   // recipientLookup is drago address
   const { recipient } = useSwapState()
   const recipientLookup = useENS(recipient ?? undefined)
   const dragoAddress = recipientLookup.address
 
-  const balance = useCurrencyBalance(dragoAddress ?? undefined, inputCurrency)
-=======
-  const balance = useCurrencyBalance(account ?? undefined, inputCurrency ?? undefined)
->>>>>>> 5e8d725e0e0bd8d84c5e78079cbee9ab1a7f95b4
+  const balance = useCurrencyBalance(dragoAddress ?? undefined, inputCurrency ?? undefined)
+
   // we can always parse the amount typed as the input currency, since wrapping is 1:1
   const inputAmount = useMemo(() => tryParseAmount(typedValue, inputCurrency ?? undefined), [inputCurrency, typedValue])
   const addTransaction = useTransactionAdder()
