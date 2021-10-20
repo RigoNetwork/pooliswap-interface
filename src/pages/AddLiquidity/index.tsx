@@ -47,7 +47,6 @@ import useTransactionDeadline from '../../hooks/useTransactionDeadline'
 import { useUSDCValue } from '../../hooks/useUSDCPrice'
 import { useV3PositionFromTokenId } from '../../hooks/useV3Positions'
 import { useActiveWeb3React } from '../../hooks/web3'
-import { ROUTER_ADDRESS } from '../../constants'
 import { AUniswap_INTERFACE } from '../../constants/abis/auniswap'
 
 import { useWalletModalToggle } from '../../state/application/hooks'
@@ -197,8 +196,14 @@ export default function AddLiquidity({
   const { address: recipientAddress } = useENSAddress(recipient)
   const argentWalletContract = useArgentWalletContract()
 
-  let [approvalA, approveACallback] = useApproveCallback(parsedAmounts[Field.CURRENCY_A], ROUTER_ADDRESS)
-  let [approvalB, approveBCallback] = useApproveCallback(parsedAmounts[Field.CURRENCY_B], ROUTER_ADDRESS)
+  let [approvalA, approveACallback] = useApproveCallback(
+    parsedAmounts[Field.CURRENCY_A],
+    chainId ? NONFUNGIBLE_POSITION_MANAGER_ADDRESSES[chainId] : undefined
+  )
+  let [approvalB, approveBCallback] = useApproveCallback(
+    parsedAmounts[Field.CURRENCY_B],
+    chainId ? NONFUNGIBLE_POSITION_MANAGER_ADDRESSES[chainId] : undefined
+  )
   // RigoBlock already handles approvals, never will have pending approvals unless user error
   if (account !== undefined) {
     approvalA = ApprovalState.APPROVED
