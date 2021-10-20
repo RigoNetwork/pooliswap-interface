@@ -204,8 +204,8 @@ export default function CurrencyInputPanel({
   const { recipient } = useSwapState()
   const mockEmptyAddress = '0x9999999999999999999999999999999999999998'
   const dragoAddress = isAddress(recipient) ? recipient : mockEmptyAddress
-  const selectedCurrencyBalance = useCurrencyBalance(dragoAddress, currency)
-  const theme = useContext(ThemeContext)
+  const selectedCurrencyBalance = useCurrencyBalance(dragoAddress ?? undefined, currency ?? undefined)
+  const theme = useTheme()
 
   const handleDismissSearch = useCallback(() => {
     setModalOpen(false)

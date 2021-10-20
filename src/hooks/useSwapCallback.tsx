@@ -85,6 +85,9 @@ function useSwapCallArguments(
         })
       )
 
+      const uniswapMethodName = swapMethods[0].methodName
+      const argsWithEth = swapMethods[0].args
+
       if (trade.tradeType === TradeType.EXACT_INPUT) {
         const fragment = AUniswap_INTERFACE.getFunction(uniswapMethodName)
         const callData: string | undefined = fragment /*&& isValidMethodArgs(callInputs)*/
@@ -136,12 +139,15 @@ function useSwapCallArguments(
       const swapRouterAddress = chainId ? SWAP_ROUTER_ADDRESSES[chainId] : undefined
       if (!swapRouterAddress) return []
 
+      // TODO: call does not need eth append, just needs additional call
+      // wrapETH(value) in batchOperateOnExchange
+
       if (trade.tradeType === TradeType.EXACT_INPUT) {
-        const swapParameters = Router.swapCallParameters(trade, {
-          feeOnTransfer: true,
-          allowedSlippage: new Percent(JSBI.BigInt(allowedSlippage), BIPS_BASE),
+        const swapParameters = SwapRouter.swapCallParameters(trade, {
           recipient,
-          ttl: deadline,
+          slippageTolerance: allowedSlippage,
+          deadline: deadline.toString(),
+          ...{},
         })
         const uniswapMethodName = swapParameters.methodName
         const argsWithEth = swapParameters.args
