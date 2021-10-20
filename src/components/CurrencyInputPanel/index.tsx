@@ -1,15 +1,22 @@
-import { Pair } from '@uniswap/v2-sdk'
+import { Trans } from '@lingui/macro'
 import { Currency, CurrencyAmount, Percent, Token } from '@uniswap/sdk-core'
-import { useState, useCallback, ReactNode } from 'react'
-import styled from 'styled-components/macro'
+import { Pair } from '@uniswap/v2-sdk'
+import { AutoColumn } from 'components/Column'
+import { LoadingOpacityContainer, loadingOpacityMixin } from 'components/Loader/styled'
 import { darken } from 'polished'
+import { ReactNode, useCallback, useState } from 'react'
+import { Lock } from 'react-feather'
+import styled from 'styled-components/macro'
+import { formatCurrencyAmount } from 'utils/formatCurrencyAmount'
+
+import { ReactComponent as DropDown } from '../../assets/images/dropdown.svg'
+import useTheme from '../../hooks/useTheme'
+import { useActiveWeb3React } from '../../hooks/web3'
 import { useCurrencyBalance } from '../../state/wallet/hooks'
-import CurrencySearchModal from '../SearchModal/CurrencySearchModal'
+import { TYPE } from '../../theme'
+import { ButtonGray } from '../Button'
 import CurrencyLogo from '../CurrencyLogo'
 import DoubleCurrencyLogo from '../DoubleLogo'
-import { ButtonGray } from '../Button'
-import { RowBetween, RowFixed } from '../Row'
-import { TYPE } from '../../theme'
 import { Input as NumericalInput } from '../NumericalInput'
 import { ReactComponent as DropDown } from '../../assets/images/dropdown.svg'
 import { useSwapState } from '../../state/swap/hooks'
@@ -19,8 +26,9 @@ import { Trans } from '@lingui/macro'
 import useTheme from '../../hooks/useTheme'
 import { Lock } from 'react-feather'
 import { AutoColumn } from 'components/Column'
+import { RowBetween, RowFixed } from '../Row'
+import CurrencySearchModal from '../SearchModal/CurrencySearchModal'
 import { FiatValue } from './FiatValue'
-import { formatCurrencyAmount } from 'utils/formatCurrencyAmount'
 
 const InputPanel = styled.div<{ hideInput?: boolean }>`
   ${({ theme }) => theme.flexColumnNoWrap}
@@ -55,7 +63,8 @@ const Container = styled.div<{ hideInput: boolean }>`
   }
 `
 
-const CurrencySelect = styled(ButtonGray)<{ selected: boolean; hideInput?: boolean }>`
+const CurrencySelect = styled(ButtonGray)<{ visible: boolean; selected: boolean; hideInput?: boolean }>`
+  visibility: ${({ visible }) => (visible ? 'visible' : 'hidden')};
   align-items: center;
   font-size: 24px;
   font-weight: 500;
@@ -82,6 +91,7 @@ const CurrencySelect = styled(ButtonGray)<{ selected: boolean; hideInput?: boole
 const InputRow = styled.div<{ selected: boolean }>`
   ${({ theme }) => theme.flexRowNoWrap}
   align-items: center;
+  justify-content: space-between;
   padding: ${({ selected }) => (selected ? ' 1rem 1rem 0.75rem 1rem' : '1rem 1rem 0.75rem 1rem')};
 `
 
@@ -146,6 +156,10 @@ const StyledBalanceMax = styled.button<{ disabled?: boolean }>`
   `};
 `
 
+const StyledNumericalInput = styled(NumericalInput)<{ $loading: boolean }>`
+  ${loadingOpacityMixin}
+`
+
 interface CurrencyInputPanelProps {
   value: string
   onUserInput: (value: string) => void
@@ -166,6 +180,7 @@ interface CurrencyInputPanelProps {
   disableNonToken?: boolean
   renderBalance?: (amount: CurrencyAmount<Currency>) => ReactNode
   locked?: boolean
+  loading?: boolean
 }
 
 export default function CurrencyInputPanel({
@@ -187,6 +202,7 @@ export default function CurrencyInputPanel({
   pair = null, // used for double token logo
   hideInput = false,
   locked = false,
+  loading = false,
   ...rest
 }: CurrencyInputPanelProps) {
   const [modalOpen, setModalOpen] = useState(false)
@@ -218,6 +234,7 @@ export default function CurrencyInputPanel({
       <Container hideInput={hideInput}>
         <InputRow style={hideInput ? { padding: '0', borderRadius: '8px' } : {}} selected={!onCurrencySelect}>
           <CurrencySelect
+            visible={currency !== undefined}
             selected={!!currency}
             hideInput={hideInput}
             className="open-currency-select-button"
@@ -254,18 +271,12 @@ export default function CurrencyInputPanel({
             </Aligner>
           </CurrencySelect>
           {!hideInput && (
-            <>
-              <NumericalInput
-                className="token-amount-input"
-                value={value}
-                onUserInput={(val) => {
-                  onUserInput(val)
-                }}
-              />
-              {account && currency  && showMaxButton && label !== 'To' && (
-                <StyledBalanceMax onClick={onMax}>MAX</StyledBalanceMax>
-              )}
-            </>
+            <StyledNumericalInput
+              className="token-amount-input"
+              value={value}
+              onUserInput={onUserInput}
+              $loading={loading}
+            />
           )}
         </InputRow>
         {!hideInput && !hideBalance && (
@@ -299,7 +310,9 @@ export default function CurrencyInputPanel({
               ) : (
                 <span />
               )}
-              <FiatValue fiatValue={fiatValue} priceImpact={priceImpact} />
+              <LoadingOpacityContainer $loading={loading}>
+                <FiatValue fiatValue={fiatValue} priceImpact={priceImpact} />
+              </LoadingOpacityContainer>
             </RowBetween>
           </FiatRow>
         )}

@@ -1,5 +1,7 @@
+import { BigNumber } from '@ethersproject/bignumber'
 import { Contract } from '@ethersproject/contracts'
 import { TransactionResponse } from '@ethersproject/providers'
+import { Trans } from '@lingui/macro'
 import { Currency, Percent } from '@uniswap/sdk-core'
 import { useCallback, useContext, useMemo, useState } from 'react'
 import { ArrowDown, Plus } from 'react-feather'
@@ -7,11 +9,12 @@ import ReactGA from 'react-ga'
 import { RouteComponentProps } from 'react-router'
 import { Text } from 'rebass'
 import { ThemeContext } from 'styled-components/macro'
-import { ButtonPrimary, ButtonLight, ButtonError, ButtonConfirmed } from '../../components/Button'
+
+import { ButtonConfirmed, ButtonError, ButtonLight, ButtonPrimary } from '../../components/Button'
 import { BlueCard, LightCard } from '../../components/Card'
 import { AutoColumn, ColumnCenter } from '../../components/Column'
-import TransactionConfirmationModal, { ConfirmationModalContent } from '../../components/TransactionConfirmationModal'
 import CurrencyInputPanel from '../../components/CurrencyInputPanel'
+import CurrencyLogo from '../../components/CurrencyLogo'
 import DoubleCurrencyLogo from '../../components/DoubleLogo'
 import { AddRemoveTabs } from '../../components/NavigationTabs'
 import { MinimalPositionCard } from '../../components/PositionCard'
@@ -19,23 +22,30 @@ import Row, { RowBetween, RowFixed } from '../../components/Row'
 import AddressInputPanel from '../../components/AddressInputPanel'
 
 import Slider from '../../components/Slider'
+import { Dots } from '../../components/swap/styleds'
 import CurrencyLogo from '../../components/CurrencyLogo'
+import TransactionConfirmationModal, { ConfirmationModalContent } from '../../components/TransactionConfirmationModal'
 import { ROUTER_ADDRESS } from '../../constants'
 import { AUniswap_INTERFACE } from '../../constants/abis/auniswap'
 import { WETH9_EXTENDED } from '../../constants/tokens'
-import { useActiveWeb3React } from '../../hooks/web3'
 import { useCurrency } from '../../hooks/Tokens'
+import { ApprovalState, useApproveCallback } from '../../hooks/useApproveCallback'
 import { usePairContract, useV2RouterContract } from '../../hooks/useContract'
+import useDebouncedChangeHandler from '../../hooks/useDebouncedChangeHandler'
 import { useV2LiquidityTokenPermit } from '../../hooks/useERC20Permit'
 import useTransactionDeadline from '../../hooks/useTransactionDeadline'
-
+import { useActiveWeb3React } from '../../hooks/web3'
+import { useWalletModalToggle } from '../../state/application/hooks'
+import { Field } from '../../state/burn/actions'
+import { useBurnActionHandlers, useBurnState, useDerivedBurnInfo } from '../../state/burn/hooks'
+import { TransactionType } from '../../state/transactions/actions'
 import { useTransactionAdder } from '../../state/transactions/hooks'
+import { useUserSlippageToleranceWithDefault } from '../../state/user/hooks'
 import { StyledInternalLink, TYPE } from '../../theme'
 import { calculateGasMargin } from '../../utils/calculateGasMargin'
 import { calculateSlippageAmount } from '../../utils/calculateSlippageAmount'
 import { calculateGasMargin, calculateSlippageAmount, getDragoContract } from '../../utils'
 import { currencyId } from '../../utils/currencyId'
-import useDebouncedChangeHandler from '../../hooks/useDebouncedChangeHandler'
 import AppBody from '../AppBody'
 import { ClickableText, MaxButton, Wrapper } from '../Pool/styleds'
 import { useApproveCallback, ApprovalState } from '../../hooks/useApproveCallback'
@@ -303,9 +313,11 @@ export default function RemoveLiquidity({
           setAttemptingTxn(false)
 
           addTransaction(response, {
-            summary: t`Remove ${parsedAmounts[Field.CURRENCY_A]?.toSignificant(3)} ${
-              currencyA?.symbol
-            } and ${parsedAmounts[Field.CURRENCY_B]?.toSignificant(3)} ${currencyB?.symbol}`,
+            type: TransactionType.REMOVE_LIQUIDITY_V3,
+            baseCurrencyId: currencyId(currencyA),
+            quoteCurrencyId: currencyId(currencyB),
+            expectedAmountBaseRaw: parsedAmounts[Field.CURRENCY_A]?.quotient.toString() ?? '0',
+            expectedAmountQuoteRaw: parsedAmounts[Field.CURRENCY_B]?.quotient.toString() ?? '0',
           })
 
           setTxHash(response.hash)
@@ -313,7 +325,7 @@ export default function RemoveLiquidity({
           ReactGA.event({
             category: 'Liquidity',
             action: 'Remove',
-            label: [currencyA?.symbol, currencyB?.symbol].join('/'),
+            label: [currencyA.symbol, currencyB.symbol].join('/'),
           })
         })
         .catch((error: Error) => {
@@ -406,9 +418,12 @@ export default function RemoveLiquidity({
     )
   }
 
-  const pendingText = t`Removing ${parsedAmounts[Field.CURRENCY_A]?.toSignificant(6)} ${
-    currencyA?.symbol
-  } and ${parsedAmounts[Field.CURRENCY_B]?.toSignificant(6)} ${currencyB?.symbol}`
+  const pendingText = (
+    <Trans>
+      Removing {parsedAmounts[Field.CURRENCY_A]?.toSignificant(6)} {currencyA?.symbol} and
+      {parsedAmounts[Field.CURRENCY_B]?.toSignificant(6)} {currencyB?.symbol}
+    </Trans>
+  )
 
   const liquidityPercentChangeCallback = useCallback(
     (value: number) => {

@@ -6,7 +6,8 @@ import { abi as IUniswapV2Router02ABI } from '@uniswap/v2-periphery/build/IUnisw
 import { Dragov2_ABI } from '../constants/abis/dragov2'
 import { ROUTER_ADDRESS } from '../constants'
 import { Token } from '@uniswap/sdk-core'
-import { FeeAmount } from '@uniswap/v3-sdk/dist/'
+import { FeeAmount } from '@uniswap/v3-sdk'
+
 import { TokenAddressMap } from '../state/lists/hooks'
 
 // returns the checksummed address if the address is valid, otherwise returns false

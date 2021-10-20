@@ -1,6 +1,7 @@
 import ApeModeQueryParamReader from 'hooks/useApeModeQueryParamReader'
 import { Route, Switch } from 'react-router-dom'
 import styled from 'styled-components/macro'
+
 import GoogleAnalyticsReporter from '../components/analytics/GoogleAnalyticsReporter'
 import AddressClaimModal from '../components/claim/AddressClaimModal'
 import ErrorBoundary from '../components/ErrorBoundary'
@@ -8,8 +9,8 @@ import Header from '../components/Header'
 import Polling from '../components/Header/Polling'
 import Popups from '../components/Popups'
 import Web3ReactManager from '../components/Web3ReactManager'
-import { ApplicationModal } from '../state/application/actions'
 import { useModalOpen, useToggleModal } from '../state/application/hooks'
+import { ApplicationModal } from '../state/application/reducer'
 import DarkModeQueryParamReader from '../theme/DarkModeQueryParamReader'
 import AddLiquidity from './AddLiquidity'
 import { RedirectDuplicateTokenIds } from './AddLiquidity/redirects'
@@ -46,7 +47,7 @@ const BodyWrapper = styled.div`
   z-index: 1;
 
   ${({ theme }) => theme.mediaWidth.upToSmall`
-  padding: 6rem 16px 16px 16px;
+    padding: 6rem 16px 16px 16px;
   `};
 `
 
@@ -75,15 +76,15 @@ export default function App() {
       <Route component={GoogleAnalyticsReporter} />
       <Route component={DarkModeQueryParamReader} />
       <Route component={ApeModeQueryParamReader} />
-      <AppWrapper>
-        <HeaderWrapper>
-          <Header />
-        </HeaderWrapper>
-        <BodyWrapper>
-          <Popups />
-          <Polling />
-          <TopLevelModals />
-          <Web3ReactManager>
+      <Web3ReactManager>
+        <AppWrapper>
+          <HeaderWrapper>
+            <Header />
+          </HeaderWrapper>
+          <BodyWrapper>
+            <Popups />
+            <Polling />
+            <TopLevelModals />
             <Switch>
               <Route exact strict path="/vote" component={Vote} />
               <Route exact strict path="/vote/:governorIndex/:id" component={VotePage} />
@@ -124,10 +125,10 @@ export default function App() {
               <Route exact strict path="/create-proposal" component={CreateProposal} />
               <Route component={RedirectPathToSwapOnly} />
             </Switch>
-          </Web3ReactManager>
-          <Marginer />
-        </BodyWrapper>
-      </AppWrapper>
+            <Marginer />
+          </BodyWrapper>
+        </AppWrapper>
+      </Web3ReactManager>
     </ErrorBoundary>
   )
 }
