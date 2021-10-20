@@ -6,14 +6,13 @@ import { Router, Trade as V2Trade } from '@uniswap/v2-sdk'
 import { SwapRouter, Trade as V3Trade } from '@uniswap/v3-sdk'
 import { ReactNode, useMemo } from 'react'
 
-import { SWAP_ROUTER_ADDRESSES } from '../constants/addresses'
+import { SWAP_ROUTER_ADDRESSES, V2_ROUTER_ADDRESS } from '../constants/addresses'
 import { TransactionType } from '../state/transactions/actions'
 import { useTransactionAdder } from '../state/transactions/hooks'
 import approveAmountCalldata from '../utils/approveAmountCalldata'
 import { getDragoContract, isAddress, shortenAddress } from '../utils'
 import { calculateGasMargin } from '../utils/calculateGasMargin'
 import { currencyId } from '../utils/currencyId'
-import { ROUTER_ADDRESS } from '../constants'
 import { AUniswap_INTERFACE } from '../constants/abis/auniswap'
 import isZero from '../utils/isZero'
 import { useArgentWalletContract } from './useArgentWalletContract'
@@ -22,7 +21,6 @@ import useENS from './useENS'
 import { SignatureData } from './useERC20Permit'
 import useTransactionDeadline from './useTransactionDeadline'
 import { useActiveWeb3React } from './web3'
-import useENS from './useENS'
 
 enum SwapCallbackState {
   INVALID,
@@ -91,21 +89,18 @@ function useSwapCallArguments(
 
         const fragment =  AUniswap_INTERFACE.getFunction(uniswapMethodName)
         const callData: string | undefined = fragment /*&& isValidMethodArgs(callInputs)*/
-              : undefined
-              ? AUniswap_INTERFACE.encodeFunctionData(fragment, argsWithEth)
+          ? AUniswap_INTERFACE.encodeFunctionData(fragment, argsWithEth)
+          : undefined
 
         swapMethods.push(
-          Router.swapCallParameters(trade, {
-            feeOnTransfer: true,
-            allowedSlippage,
           {
             methodName: 'operateOnExchange',
-            args: [ROUTER_ADDRESS, [callData]],
+            args: [V2_ROUTER_ADDRESS, [callData]],
             value: '0x0'
           }
           /*Router.swapCallParameters(trade, {
             feeOnTransfer: false,
-            allowedSlippage: new Percent(JSBI.BigInt(allowedSlippage), BIPS_BASE),
+            allowedSlippage,
             recipient,
             deadline: deadline.toNumber(),
           })
@@ -164,29 +159,18 @@ function useSwapCallArguments(
           swapMethods.push(
             {
               methodName: 'operateOnExchange',
-              args: [ROUTER_ADDRESS, [callData]],
+              args: [V2_ROUTER_ADDRESS, [callData]],
               value : '0x0'
             }
             /*Router.swapCallParameters(trade, {
               feeOnTransfer: true,
-              allowedSlippage: new Percent(JSBI.BigInt(allowedSlippage), BIPS_BASE),
+              allowedSlippage,
               recipient,
               ttl: deadline
             })*/
           )
         }
-        break
-/*
-      case Version.v1:
-        swapMethods.push(
-          v1SwapArguments(trade, {
-            allowedSlippage: new Percent(JSBI.BigInt(allowedSlippage), BIPS_BASE),
-            recipient,
-            ttl: deadline
-          })
-        )
-        break
-*/
+
       const { value, calldata } = SwapRouter.swapCallParameters(trade, {
         recipient,
         slippageTolerance: allowedSlippage,
