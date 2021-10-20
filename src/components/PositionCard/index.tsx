@@ -175,7 +175,7 @@ export default function FullPositionCard({ pair, border, stakedBalance }: Positi
   const { recipient } = useSwapState()
   const { address: recipientAddress } = useENSAddress(recipient)
 
-  const userPoolBalance = useTokenBalance(recipientAddress, pair.liquidityToken)
+  const userDefaultPoolBalance = useTokenBalance(recipientAddress, pair.liquidityToken)
   const totalPoolTokens = useTotalSupply(pair.liquidityToken)
 
   // if staked balance balance provided, add to standard liquidity amount
