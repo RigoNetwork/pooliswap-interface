@@ -2,12 +2,12 @@ import { getAddress } from '@ethersproject/address'
 import { AddressZero } from '@ethersproject/constants'
 import { Contract } from '@ethersproject/contracts'
 import { JsonRpcSigner, Web3Provider } from '@ethersproject/providers'
-import { abi as IUniswapV2Router02ABI } from '@uniswap/v2-periphery/build/IUniswapV2Router02.json'
-import { Dragov2_ABI } from '../constants/abis/dragov2'
-import { V2_ROUTER_ADDRESS } from '../constants/addresses'
 import { Token } from '@uniswap/sdk-core'
+import { abi as IUniswapV2Router02ABI } from '@uniswap/v2-periphery/build/IUniswapV2Router02.json'
 import { FeeAmount } from '@uniswap/v3-sdk'
 
+import { Dragov2_ABI } from '../constants/abis/dragov2'
+import { V2_ROUTER_ADDRESS } from '../constants/addresses'
 import { TokenAddressMap } from '../state/lists/hooks'
 
 // returns the checksummed address if the address is valid, otherwise returns false

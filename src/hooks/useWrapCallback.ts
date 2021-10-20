@@ -2,13 +2,13 @@ import { Currency } from '@uniswap/sdk-core'
 import { useMemo } from 'react'
 
 import { WETH9_EXTENDED } from '../constants/tokens'
+import useENS from '../hooks/useENS'
 import { tryParseAmount } from '../state/swap/hooks'
+import { useSwapState } from '../state/swap/hooks'
 import { TransactionType } from '../state/transactions/actions'
 import { useTransactionAdder } from '../state/transactions/hooks'
 import { useCurrencyBalance } from '../state/wallet/hooks'
 import { useWETHContract } from './useContract'
-import { useSwapState } from '../state/swap/hooks'
-import useENS from '../hooks/useENS'
 import { useActiveWeb3React } from './web3'
 
 export enum WrapType {

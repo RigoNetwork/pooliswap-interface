@@ -1,4 +1,5 @@
 import { Interface } from '@ethersproject/abi'
+
 import Dragov2_ABI from './dragov2.json'
 
 const Dragov2_INTERFACE = new Interface(Dragov2_ABI)
