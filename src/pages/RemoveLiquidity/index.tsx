@@ -259,20 +259,18 @@ export default function RemoveLiquidity({
     }
 
     const safeGasEstimates: (BigNumber | undefined)[] = await Promise.all(
-      methodNames.map(methodName => {
+      methodNames.map((methodName) => {
         const fragment = AUniswap_INTERFACE.getFunction(methodName)
         const callData: string | undefined = fragment /*&& isValidMethodArgs(callInputs)*/
-              ? AUniswap_INTERFACE.encodeFunctionData(fragment, argsAdapter)
-              : undefined
+          ? AUniswap_INTERFACE.encodeFunctionData(fragment, argsAdapter)
+          : undefined
         args = [NONFUNGIBLE_POSITION_MANAGER_ADDRESSES, [callData]]
-        return(
-          drago.estimateGas['operateOnExchange'](...args)
-            .then((estimateGas) => calculateGasMargin(chainId, estimateGas))
-            .catch(error => {
-              console.error(`estimateGas failed`, methodName, args, error)
-              return undefined
-            })
-        )
+        return drago.estimateGas['operateOnExchange'](...args)
+          .then((estimateGas) => calculateGasMargin(chainId, estimateGas))
+          .catch((error) => {
+            console.error(`estimateGas failed`, methodName, args, error)
+            return undefined
+          })
       })
     )
 
@@ -289,15 +287,15 @@ export default function RemoveLiquidity({
 
       const fragment = AUniswap_INTERFACE.getFunction(methodName)
       const callData: string | undefined = fragment /*&& isValidMethodArgs(callInputs)*/
-            ? AUniswap_INTERFACE.encodeFunctionData(fragment, argsAdapter)
-            : undefined
+        ? AUniswap_INTERFACE.encodeFunctionData(fragment, argsAdapter)
+        : undefined
       args = [NONFUNGIBLE_POSITION_MANAGER_ADDRESSES, [callData]]
 
       setAttemptingTxn(true)
       // await router[methodName](...args, {
       const dragoMethod = 'operateOnExchange'
       await drago[dragoMethod](...args, {
-        gasLimit: safeGasEstimate
+        gasLimit: safeGasEstimate,
       })
         .then((response: TransactionResponse) => {
           setAttemptingTxn(false)

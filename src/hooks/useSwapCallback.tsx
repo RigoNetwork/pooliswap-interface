@@ -86,8 +86,7 @@ function useSwapCallArguments(
       )
 
       if (trade.tradeType === TradeType.EXACT_INPUT) {
-
-        const fragment =  AUniswap_INTERFACE.getFunction(uniswapMethodName)
+        const fragment = AUniswap_INTERFACE.getFunction(uniswapMethodName)
         const callData: string | undefined = fragment /*&& isValidMethodArgs(callInputs)*/
           ? AUniswap_INTERFACE.encodeFunctionData(fragment, argsWithEth)
           : undefined
@@ -96,7 +95,7 @@ function useSwapCallArguments(
           {
             methodName: 'operateOnExchange',
             args: [V2_ROUTER_ADDRESS, [callData]],
-            value: '0x0'
+            value: '0x0',
           }
           /*Router.swapCallParameters(trade, {
             feeOnTransfer: false,
@@ -137,39 +136,39 @@ function useSwapCallArguments(
       const swapRouterAddress = chainId ? SWAP_ROUTER_ADDRESSES[chainId] : undefined
       if (!swapRouterAddress) return []
 
-        if (trade.tradeType === TradeType.EXACT_INPUT) {
-          const swapParameters = Router.swapCallParameters(trade, {
-            feeOnTransfer: true,
-            allowedSlippage: new Percent(JSBI.BigInt(allowedSlippage), BIPS_BASE),
-            recipient,
-            ttl: deadline
-          })
-          const uniswapMethodName = swapParameters.methodName
-          const argsWithEth = swapParameters.args
+      if (trade.tradeType === TradeType.EXACT_INPUT) {
+        const swapParameters = Router.swapCallParameters(trade, {
+          feeOnTransfer: true,
+          allowedSlippage: new Percent(JSBI.BigInt(allowedSlippage), BIPS_BASE),
+          recipient,
+          ttl: deadline,
+        })
+        const uniswapMethodName = swapParameters.methodName
+        const argsWithEth = swapParameters.args
 
-          if (!isZero(swapParameters.value)) {
-            argsWithEth.unshift(swapParameters.value)
+        if (!isZero(swapParameters.value)) {
+          argsWithEth.unshift(swapParameters.value)
+        }
+
+        const fragment = AUniswap_INTERFACE.getFunction(uniswapMethodName)
+        const callData: string | undefined = fragment /*&& isValidMethodArgs(callInputs)*/
+          ? AUniswap_INTERFACE.encodeFunctionData(fragment, argsWithEth)
+          : undefined
+
+        swapMethods.push(
+          {
+            methodName: 'operateOnExchange',
+            args: [V2_ROUTER_ADDRESS, [callData]],
+            value: '0x0',
           }
-
-          const fragment =  AUniswap_INTERFACE.getFunction(uniswapMethodName)
-          const callData: string | undefined = fragment /*&& isValidMethodArgs(callInputs)*/
-                ? AUniswap_INTERFACE.encodeFunctionData(fragment, argsWithEth)
-                : undefined
-
-          swapMethods.push(
-            {
-              methodName: 'operateOnExchange',
-              args: [V2_ROUTER_ADDRESS, [callData]],
-              value : '0x0'
-            }
-            /*Router.swapCallParameters(trade, {
+          /*Router.swapCallParameters(trade, {
               feeOnTransfer: true,
               allowedSlippage,
               recipient,
               ttl: deadline
             })*/
-          )
-        }
+        )
+      }
 
       const { value, calldata } = SwapRouter.swapCallParameters(trade, {
         recipient,
