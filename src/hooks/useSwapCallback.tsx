@@ -10,7 +10,7 @@ import { AUniswap_INTERFACE } from '../constants/abis/auniswap'
 import { SWAP_ROUTER_ADDRESSES, V2_ROUTER_ADDRESS } from '../constants/addresses'
 import { TransactionType } from '../state/transactions/actions'
 import { useTransactionAdder } from '../state/transactions/hooks'
-import { getDragoContract, isAddress, shortenAddress } from '../utils'
+import { getDragoContract /*, isAddress, shortenAddress*/ } from '../utils'
 import approveAmountCalldata from '../utils/approveAmountCalldata'
 import { calculateGasMargin } from '../utils/calculateGasMargin'
 import { currencyId } from '../utils/currencyId'
@@ -150,7 +150,7 @@ function useSwapCallArguments(
         recipient,
         slippageTolerance: allowedSlippage,
         deadline: deadline.toString(),
-        ...{},
+        ...(signatureData ? null : {}),
       })
       if (argentWalletContract && trade.inputAmount.currency.isToken) {
         return [

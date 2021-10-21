@@ -33,7 +33,7 @@ import RateToggle from '../../components/RateToggle'
 import Row, { AutoRow, RowBetween, RowFixed } from '../../components/Row'
 import { SwitchLocaleLink } from '../../components/SwitchLocaleLink'
 import TransactionConfirmationModal, { ConfirmationModalContent } from '../../components/TransactionConfirmationModal'
-import { AUniswap_INTERFACE } from '../../constants/abis/auniswap'
+//import { AUniswap_INTERFACE } from '../../constants/abis/auniswap'
 import { NONFUNGIBLE_POSITION_MANAGER_ADDRESSES } from '../../constants/addresses'
 import { CHAIN_INFO, SupportedChainId } from '../../constants/chains'
 import { ZERO_PERCENT } from '../../constants/misc'
@@ -51,7 +51,7 @@ import { useV3PositionFromTokenId } from '../../hooks/useV3Positions'
 import { useActiveWeb3React } from '../../hooks/web3'
 import { useWalletModalToggle } from '../../state/application/hooks'
 import { Bound, Field } from '../../state/mint/v3/actions'
-import { useSwapActionHandlers, useSwapState } from '../../state/swap/hooks'
+import { /*useSwapActionHandlers,*/ useSwapState } from '../../state/swap/hooks'
 import { TransactionType } from '../../state/transactions/actions'
 import { useTransactionAdder } from '../../state/transactions/hooks'
 import { useIsExpertMode, useUserSlippageToleranceWithDefault } from '../../state/user/hooks'
@@ -193,7 +193,7 @@ export default function AddLiquidity({
     {}
   )
 
-  const { onChangeRecipient } = useSwapActionHandlers()
+  //const { onChangeRecipient } = useSwapActionHandlers()
   const { recipient } = useSwapState()
   const { address: recipientAddress } = useENSAddress(recipient)
   const argentWalletContract = useArgentWalletContract()

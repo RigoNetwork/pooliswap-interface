@@ -188,7 +188,7 @@ export default function RemoveLiquidity({
     if (!tokenA || !tokenB) throw new Error('could not wrap')
 
     let methodNames: string[],
-      args: Array<string | string[] | number | boolean>,
+      //args: Array<string | string[] | number | boolean>,
       argsAdapter: Array<string | string[] | number | boolean>
     // we have approval, use normal remove liquidity
     if (approval === ApprovalState.APPROVED) {
@@ -535,7 +535,7 @@ export default function RemoveLiquidity({
             </LightCard>
             {!showDetailed && (
               <>
-                <AddressInputPanel id="recipient" value={recipient!} onChange={onChangeRecipient} />
+                <AddressInputPanel id="recipient" value={recipient ?? '0x0'} onChange={onChangeRecipient} />
                 <ColumnCenter>
                   <ArrowDown size="16" color={theme.text2} />
                 </ColumnCenter>
@@ -591,7 +591,7 @@ export default function RemoveLiquidity({
 
             {showDetailed && (
               <>
-                <AddressInputPanel id="recipient" value={recipient!} onChange={onChangeRecipient} />
+                <AddressInputPanel id="recipient" value={recipient ?? '0x0'} onChange={onChangeRecipient} />
                 <CurrencyInputPanel
                   value={formattedAmounts[Field.LIQUIDITY]}
                   onUserInput={onLiquidityInput}
