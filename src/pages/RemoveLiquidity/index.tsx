@@ -24,7 +24,7 @@ import Slider from '../../components/Slider'
 import { Dots } from '../../components/swap/styleds'
 import TransactionConfirmationModal, { ConfirmationModalContent } from '../../components/TransactionConfirmationModal'
 import { AUniswap_INTERFACE } from '../../constants/abis/auniswap'
-import { NONFUNGIBLE_POSITION_MANAGER_ADDRESSES } from '../../constants/addresses'
+import { V2_ROUTER_ADDRESS } from '../../constants/addresses'
 import { WETH9_EXTENDED } from '../../constants/tokens'
 import { useCurrency } from '../../hooks/Tokens'
 import { ApprovalState, useApproveCallback } from '../../hooks/useApproveCallback'
@@ -109,7 +109,8 @@ export default function RemoveLiquidity({
     parsedAmounts[Field.LIQUIDITY],
     router?.address
   )
-  const [approval, approveCallback] = useApproveCallback(parsedAmounts[Field.LIQUIDITY], router?.address)
+  const [, approveCallback] = useApproveCallback(parsedAmounts[Field.LIQUIDITY], router?.address)
+  let [approval] = useApproveCallback(parsedAmounts[Field.LIQUIDITY], router?.address)
   // RigoBlock already handles approvals, never will have pending approvals unless user error
   if (account !== undefined) {
     approval = ApprovalState.APPROVED
@@ -262,7 +263,7 @@ export default function RemoveLiquidity({
         const callData: string | undefined = fragment /*&& isValidMethodArgs(callInputs)*/
           ? AUniswap_INTERFACE.encodeFunctionData(fragment, argsAdapter)
           : undefined
-        args = [NONFUNGIBLE_POSITION_MANAGER_ADDRESSES, [callData]]
+        const args = [V2_ROUTER_ADDRESS, [callData]]
         return drago.estimateGas['operateOnExchange'](...args)
           .then((estimateGas) => calculateGasMargin(chainId, estimateGas))
           .catch((error) => {
@@ -287,7 +288,7 @@ export default function RemoveLiquidity({
       const callData: string | undefined = fragment /*&& isValidMethodArgs(callInputs)*/
         ? AUniswap_INTERFACE.encodeFunctionData(fragment, argsAdapter)
         : undefined
-      args = [NONFUNGIBLE_POSITION_MANAGER_ADDRESSES, [callData]]
+      const args = [V2_ROUTER_ADDRESS, [callData]]
 
       setAttemptingTxn(true)
       // await router[methodName](...args, {
@@ -534,7 +535,7 @@ export default function RemoveLiquidity({
             </LightCard>
             {!showDetailed && (
               <>
-                <AddressInputPanel id="recipient" value={recipient} onChange={onChangeRecipient} />
+                <AddressInputPanel id="recipient" value={recipient!} onChange={onChangeRecipient} />
                 <ColumnCenter>
                   <ArrowDown size="16" color={theme.text2} />
                 </ColumnCenter>
@@ -590,7 +591,7 @@ export default function RemoveLiquidity({
 
             {showDetailed && (
               <>
-                <AddressInputPanel id="recipient" value={recipient} onChange={onChangeRecipient} />
+                <AddressInputPanel id="recipient" value={recipient!} onChange={onChangeRecipient} />
                 <CurrencyInputPanel
                   value={formattedAmounts[Field.LIQUIDITY]}
                   onUserInput={onLiquidityInput}
