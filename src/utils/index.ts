@@ -2,11 +2,12 @@ import { getAddress } from '@ethersproject/address'
 import { AddressZero } from '@ethersproject/constants'
 import { Contract } from '@ethersproject/contracts'
 import { JsonRpcSigner, Web3Provider } from '@ethersproject/providers'
-//import { abi as SWAP_ROUTER_ABI } from '@uniswap/v3-periphery/artifacts/contracts/SwapRouter.sol/SwapRouter.json'
-import { Dragov2_ABI } from '../constants/abis/dragov2'
-//import { ROUTER_ADDRESS } from '../constants'
 import { Token } from '@uniswap/sdk-core'
-import { FeeAmount } from '@uniswap/v3-sdk/dist/'
+import { abi as IUniswapV2Router02ABI } from '@uniswap/v2-periphery/build/IUniswapV2Router02.json'
+import { FeeAmount } from '@uniswap/v3-sdk'
+
+import { Dragov2_ABI } from '../constants/abis/dragov2'
+import { V2_ROUTER_ADDRESS } from '../constants/addresses'
 import { TokenAddressMap } from '../state/lists/hooks'
 
 // returns the checksummed address if the address is valid, otherwise returns false
@@ -49,13 +50,13 @@ export function getContract(address: string, ABI: any, library: Web3Provider, ac
 // account is optional
 /*
 export function getRouterContract(_: number, library: Web3Provider, account?: string): Contract {
-  return getContract(ROUTER_ADDRESS, SWAP_ROUTER_ABI, library, account)
+  return getContract(V2_ROUTER_ADDRESS as string, IUniswapV2Router02ABI, library, account ?? undefined)
 }
 */
 
 // account, recipient are optional
 export function getDragoContract(_: number, library: Web3Provider, account?: string, recipient?: string): Contract {
-  return getContract(recipient ?? '0x0', Dragov2_ABI, library, account)
+  return getContract(recipient as string, Dragov2_ABI, library, account ?? undefined)
 }
 
 export function escapeRegExp(string: string): string {

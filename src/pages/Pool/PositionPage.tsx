@@ -1,49 +1,51 @@
-import { useCallback, useMemo, useRef, useState } from 'react'
-import { NonfungiblePositionManager, Pool, Position } from '@uniswap/v3-sdk'
-
-import { PoolState, usePool } from 'hooks/usePools'
-import { useToken } from 'hooks/Tokens'
-import { useV3PositionFromTokenId } from 'hooks/useV3Positions'
-import { Link, RouteComponentProps } from 'react-router-dom'
-import { unwrappedToken } from 'utils/unwrappedToken'
-import { usePositionTokenURI } from '../../hooks/usePositionTokenURI'
-import { calculateGasMargin } from '../../utils/calculateGasMargin'
-import { getExplorerLink, ExplorerDataType } from '../../utils/getExplorerLink'
-import { LoadingRows } from './styleds'
-import styled from 'styled-components/macro'
-import { AutoColumn } from 'components/Column'
-import { RowBetween, RowFixed } from 'components/Row'
-import DoubleCurrencyLogo from 'components/DoubleLogo'
-import { ExternalLink, HideExtraSmall, TYPE } from 'theme'
-import Badge from 'components/Badge'
-import { ButtonConfirmed, ButtonPrimary, ButtonGray } from 'components/Button'
-import { DarkCard, LightCard } from 'components/Card'
-import CurrencyLogo from 'components/CurrencyLogo'
+import { BigNumber } from '@ethersproject/bignumber'
+import { TransactionResponse } from '@ethersproject/providers'
 import { Trans } from '@lingui/macro'
+import { Currency, CurrencyAmount, Fraction, Percent, Price, Token } from '@uniswap/sdk-core'
+import { NonfungiblePositionManager, Pool, Position } from '@uniswap/v3-sdk'
+import Badge from 'components/Badge'
+import { ButtonConfirmed, ButtonGray, ButtonPrimary } from 'components/Button'
+import { DarkCard, LightCard } from 'components/Card'
+import { AutoColumn } from 'components/Column'
+import CurrencyLogo from 'components/CurrencyLogo'
+import DoubleCurrencyLogo from 'components/DoubleLogo'
+import Loader from 'components/Loader'
+import { RowBetween, RowFixed } from 'components/Row'
+import { Dots } from 'components/swap/styleds'
+import Toggle from 'components/Toggle'
+import TransactionConfirmationModal, { ConfirmationModalContent } from 'components/TransactionConfirmationModal'
+import { SupportedChainId } from 'constants/chains'
+import { useToken } from 'hooks/Tokens'
+import { useV3NFTPositionManagerContract } from 'hooks/useContract'
+import useIsTickAtLimit from 'hooks/useIsTickAtLimit'
+import { PoolState, usePool } from 'hooks/usePools'
+import useUSDCPrice from 'hooks/useUSDCPrice'
+import { useV3PositionFees } from 'hooks/useV3PositionFees'
+import { useV3PositionFromTokenId } from 'hooks/useV3Positions'
+import { useActiveWeb3React } from 'hooks/web3'
+import { useCallback, useMemo, useRef, useState } from 'react'
+import ReactGA from 'react-ga'
+import { Link, RouteComponentProps } from 'react-router-dom'
+import { Bound } from 'state/mint/v3/actions'
+import { useSingleCallResult } from 'state/multicall/hooks'
+import { useIsTransactionPending, useTransactionAdder } from 'state/transactions/hooks'
+import styled from 'styled-components/macro'
+import { ExternalLink, HideExtraSmall, TYPE } from 'theme'
 import { currencyId } from 'utils/currencyId'
 import { formatCurrencyAmount } from 'utils/formatCurrencyAmount'
-import { useV3PositionFees } from 'hooks/useV3PositionFees'
-import { BigNumber } from '@ethersproject/bignumber'
-import { Token, Currency, CurrencyAmount, Percent, Fraction, Price } from '@uniswap/sdk-core'
-import { useActiveWeb3React } from 'hooks/web3'
-import { useV3NFTPositionManagerContract } from 'hooks/useContract'
-import { useIsTransactionPending, useTransactionAdder } from 'state/transactions/hooks'
-import ReactGA from 'react-ga'
-import TransactionConfirmationModal, { ConfirmationModalContent } from 'components/TransactionConfirmationModal'
-import { TransactionResponse } from '@ethersproject/providers'
-import { Dots } from 'components/swap/styleds'
-import { getPriceOrderingFromPositionForUI } from '../../components/PositionListItem'
-import useTheme from '../../hooks/useTheme'
-import RateToggle from '../../components/RateToggle'
-import { useSingleCallResult } from 'state/multicall/hooks'
-import RangeBadge from '../../components/Badge/RangeBadge'
-import { SwitchLocaleLink } from '../../components/SwitchLocaleLink'
-import useUSDCPrice from 'hooks/useUSDCPrice'
-import Loader from 'components/Loader'
-import Toggle from 'components/Toggle'
-import { Bound } from 'state/mint/v3/actions'
-import useIsTickAtLimit from 'hooks/useIsTickAtLimit'
 import { formatTickPrice } from 'utils/formatTickPrice'
+import { unwrappedToken } from 'utils/unwrappedToken'
+
+import RangeBadge from '../../components/Badge/RangeBadge'
+import { getPriceOrderingFromPositionForUI } from '../../components/PositionListItem'
+import RateToggle from '../../components/RateToggle'
+import { SwitchLocaleLink } from '../../components/SwitchLocaleLink'
+import { usePositionTokenURI } from '../../hooks/usePositionTokenURI'
+import useTheme from '../../hooks/useTheme'
+import { TransactionType } from '../../state/transactions/actions'
+import { calculateGasMargin } from '../../utils/calculateGasMargin'
+import { ExplorerDataType, getExplorerLink } from '../../utils/getExplorerLink'
+import { LoadingRows } from './styleds'
 
 const PageWrapper = styled.div`
   min-width: 800px;
@@ -304,10 +306,10 @@ const useInverter = ({
   base?: Token
 } => {
   return {
-    priceUpper: invert ? priceUpper?.invert() : priceUpper,
-    priceLower: invert ? priceLower?.invert() : priceLower,
-    quote,
-    base,
+    priceUpper: invert ? priceLower?.invert() : priceUpper,
+    priceLower: invert ? priceUpper?.invert() : priceLower,
+    quote: invert ? base : quote,
+    base: invert ? quote : base,
   }
 }
 
@@ -371,11 +373,6 @@ export function PositionPage({
   const inverted = token1 ? base?.equals(token1) : undefined
   const currencyQuote = inverted ? currency0 : currency1
   const currencyBase = inverted ? currency1 : currency0
-
-  // check if price is within range
-  const below = pool && typeof tickLower === 'number' ? pool.tickCurrent < tickLower : undefined
-  const above = pool && typeof tickUpper === 'number' ? pool.tickCurrent >= tickUpper : undefined
-  const inRange: boolean = typeof below === 'boolean' && typeof above === 'boolean' ? !below && !above : false
 
   const ratio = useMemo(() => {
     return priceLower && pool && priceUpper
@@ -463,7 +460,9 @@ export function PositionPage({
             })
 
             addTransaction(response, {
-              summary: `Collect ${feeValue0.currency.symbol}/${feeValue1.currency.symbol} fees`,
+              type: TransactionType.COLLECT_FEES,
+              currencyId0: currencyId(feeValue0.currency),
+              currencyId1: currencyId(feeValue1.currency),
             })
           })
       })
@@ -478,6 +477,11 @@ export function PositionPage({
 
   const feeValueUpper = inverted ? feeValue0 : feeValue1
   const feeValueLower = inverted ? feeValue1 : feeValue0
+
+  // check if price is within range
+  const below = pool && typeof tickLower === 'number' ? pool.tickCurrent < tickLower : undefined
+  const above = pool && typeof tickUpper === 'number' ? pool.tickCurrent >= tickUpper : undefined
+  const inRange: boolean = typeof below === 'boolean' && typeof above === 'boolean' ? !below && !above : false
 
   function modalHeader() {
     return (
@@ -510,13 +514,15 @@ export function PositionPage({
     )
   }
 
+  const onOptimisticChain = chainId && [SupportedChainId.OPTIMISM, SupportedChainId.OPTIMISTIC_KOVAN].includes(chainId)
   const showCollectAsWeth = Boolean(
     ownsNFT &&
       (feeValue0?.greaterThan(0) || feeValue1?.greaterThan(0)) &&
       currency0 &&
       currency1 &&
       (currency0.isNative || currency1.isNative) &&
-      !collectMigrationHash
+      !collectMigrationHash &&
+      !onOptimisticChain
   )
 
   return loading || poolState === PoolState.LOADING || !feeAmount ? (

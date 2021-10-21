@@ -1,34 +1,32 @@
-import JSBI from 'jsbi'
-import { Percent, CurrencyAmount, Token } from '@uniswap/sdk-core'
+import { Trans } from '@lingui/macro'
+import { CurrencyAmount, Percent, Token } from '@uniswap/sdk-core'
 import { Pair } from '@uniswap/v2-sdk'
+import JSBI from 'jsbi'
+import { transparentize } from 'polished'
 import { useState } from 'react'
 import { ChevronDown, ChevronUp } from 'react-feather'
 import { Link } from 'react-router-dom'
 import { Text } from 'rebass'
 import styled from 'styled-components/macro'
-import { useTotalSupply } from '../../hooks/useTotalSupply'
-import { Trans } from '@lingui/macro'
 
-//import { useActiveWeb3React } from '../../hooks'
+import { BIG_INT_ZERO } from '../../constants/misc'
+import { useColor } from '../../hooks/useColor'
+import useENSAddress from '../../hooks/useENSAddress'
+import { useTotalSupply } from '../../hooks/useTotalSupply'
+//import { useActiveWeb3React } from '../../hooks/web3'
+import { useSwapState } from '../../state/swap/hooks'
 import { useTokenBalance } from '../../state/wallet/hooks'
 import { ExternalLink, TYPE } from '../../theme'
 import { currencyId } from '../../utils/currencyId'
 import { unwrappedToken } from '../../utils/unwrappedToken'
-import { ButtonPrimary, ButtonSecondary, ButtonEmpty } from '../Button'
-import { transparentize } from 'polished'
-import { CardNoise } from '../earn/styled'
-import { useSwapState } from '../../state/swap/hooks'
-
-import { useColor } from '../../hooks/useColor'
-
+import { ButtonEmpty, ButtonPrimary, ButtonSecondary } from '../Button'
 import { GreyCard, LightCard } from '../Card'
 import { AutoColumn } from '../Column'
 import CurrencyLogo from '../CurrencyLogo'
 import DoubleCurrencyLogo from '../DoubleLogo'
-import { RowBetween, RowFixed, AutoRow } from '../Row'
+import { CardNoise } from '../earn/styled'
+import { AutoRow, RowBetween, RowFixed } from '../Row'
 import { Dots } from '../swap/styleds'
-import { BIG_INT_ZERO } from '../../constants/misc'
-import useENSAddress from '../../hooks/useENSAddress'
 
 export const FixedHeightRow = styled(RowBetween)`
   height: 24px;
@@ -312,7 +310,7 @@ export default function FullPositionCard({ pair, border, stakedBalance }: Positi
             <ButtonSecondary padding="8px" $borderRadius="8px">
               <ExternalLink
                 style={{ width: '100%', textAlign: 'center' }}
-                href={`https://v2.info.uniswap.org/account/${recipient}`}
+                href={`https://v2.info.uniswap.org/account/${recipientAddress}`}
               >
                 <Trans>
                   View accrued fees and analytics<span style={{ fontSize: '11px' }}>↗</span>
