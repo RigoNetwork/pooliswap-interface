@@ -95,6 +95,10 @@ function useSwapCallArguments(
       const uniswapMethodName = swapMethods[0].methodName
       const argsWithEth = swapMethods[0].args
 
+      if (!isZero(swapMethods[0].value)) {
+        argsWithEth.unshift(swapMethods[0].value)
+      }
+
       if (trade.tradeType === TradeType.EXACT_INPUT) {
         const fragment = AUniswap_INTERFACE.getFunction(uniswapMethodName)
         const callData: string | undefined = fragment /*&& isValidMethodArgs(callInputs)*/
@@ -153,7 +157,10 @@ function useSwapCallArguments(
         deadline: deadline.toString(),
         ...(signatureData ? null : {}),
       })
-      const wrapData = AUniswapV3_INTERFACE.encodeFunctionData('wrapETH', [value])
+      let wrapData = {}
+      if (value != null) {
+        wrapData = AUniswapV3_INTERFACE.encodeFunctionData('wrapETH', [value])
+      }
       if (argentWalletContract && trade.inputAmount.currency.isToken) {
         return [
           {
@@ -179,8 +186,8 @@ function useSwapCallArguments(
             swapRouterAddress,
             [
               // wrap ETH (will not write onchain if value is 0)
-              wrapData,
-              calldata,
+              [wrapData],
+              [calldata],
             ],
           ]),
           value: '0x0',

@@ -87,7 +87,7 @@ export default class ErrorBoundary extends React.Component<unknown, ErrorBoundar
                 <LinkWrapper>
                   <ExternalLink
                     id="create-github-issue-link"
-                    href={`https://github.com/Uniswap/uniswap-interface/issues/new?assignees=&labels=bug&body=${encodedBody}&title=${encodeURIComponent(
+                    href={`https://github.com/RigoNetwork/pooliswap-interface/issues/new?assignees=&labels=bug&body=${encodedBody}&title=${encodeURIComponent(
                       `Crash report: \`${error.name}${error.message && `: ${error.message}`}\``
                     )}`}
                     target="_blank"
@@ -99,7 +99,7 @@ export default class ErrorBoundary extends React.Component<unknown, ErrorBoundar
                   </ExternalLink>
                 </LinkWrapper>
                 <LinkWrapper>
-                  <ExternalLink id="get-support-on-discord" href="https://discord.gg/FCfyBSbCU5" target="_blank">
+                  <ExternalLink id="get-support-on-discord" href="https://discord.gg/FXd8EU8" target="_blank">
                     <TYPE.link fontSize={16}>
                       <Trans>Get support on Discord</Trans>
                       <span>↗</span>
@@ -139,13 +139,13 @@ function issueBody(error: Error): string {
   const relevantState = getRelevantState()
   const deviceData = userAgent
   return `## URL
-  
+
 ${window.location.href}
 
 ${
   relevantState
     ? `## \`${relevantState}\` state
-    
+
 \`\`\`json
 ${JSON.stringify(store.getState()[relevantState], null, 2)}
 \`\`\`
