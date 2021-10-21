@@ -72,6 +72,12 @@ function useSwapCallArguments(
   return useMemo(() => {
     if (!trade || !recipient || !library || !account || !chainId || !deadline) return []
 
+    // TODO: check moving drago contract definition in custom hook
+    const dragoContract = getDragoContract(chainId, library, account, recipient)
+    if (!dragoContract) {
+      return []
+    }
+
     if (trade instanceof V2Trade) {
       if (!routerContract) return []
       const swapMethods = []
@@ -128,9 +134,10 @@ function useSwapCallArguments(
           }
         } else {
           return {
-            address: routerContract.address,
-            calldata: routerContract.interface.encodeFunctionData(methodName, args),
-            value,
+            address: dragoContract.address,
+            // in Uniswap V2 router and adapter have different interface (eth append)
+            calldata: AUniswap_INTERFACE.encodeFunctionData(uniswapMethodName, argsWithEth),
+            value: '0x0',
           }
         }
       })
@@ -139,67 +146,11 @@ function useSwapCallArguments(
       const swapRouterAddress = chainId ? SWAP_ROUTER_ADDRESSES[chainId] : undefined
       if (!swapRouterAddress) return []
 
-      // TODO: call does not need eth append, just needs additional call
-      // wrapETH(value) in batchOperateOnExchange
-
-      if (trade.tradeType === TradeType.EXACT_INPUT) {
-        const swapParameters = SwapRouter.swapCallParameters(trade, {
-          recipient,
-          slippageTolerance: allowedSlippage,
-          deadline: deadline.toString(),
-          ...{},
-        })
-        const uniswapMethodName = swapParameters.methodName
-        const argsWithEth = swapParameters.args
-
-        if (!isZero(swapParameters.value)) {
-          argsWithEth.unshift(swapParameters.value)
-        }
-
-        const fragment = AUniswap_INTERFACE.getFunction(uniswapMethodName)
-        const callData: string | undefined = fragment /*&& isValidMethodArgs(callInputs)*/
-          ? AUniswap_INTERFACE.encodeFunctionData(fragment, argsWithEth)
-          : undefined
-
-        swapMethods.push(
-          {
-            methodName: 'operateOnExchange',
-            args: [V2_ROUTER_ADDRESS, [callData]],
-            value: '0x0',
-          }
-          /*Router.swapCallParameters(trade, {
-              feeOnTransfer: true,
-              allowedSlippage,
-              recipient,
-              ttl: deadline
-            })*/
-        )
-      }
-
       const { value, calldata } = SwapRouter.swapCallParameters(trade, {
         recipient,
         slippageTolerance: allowedSlippage,
         deadline: deadline.toString(),
-        ...(signatureData
-          ? {
-              inputTokenPermit:
-                'allowed' in signatureData
-                  ? {
-                      expiry: signatureData.deadline,
-                      nonce: signatureData.nonce,
-                      s: signatureData.s,
-                      r: signatureData.r,
-                      v: signatureData.v as any,
-                    }
-                  : {
-                      deadline: signatureData.deadline,
-                      amount: signatureData.amount,
-                      s: signatureData.s,
-                      r: signatureData.r,
-                      v: signatureData.v as any,
-                    },
-            }
-          : {}),
+        ...{},
       })
       if (argentWalletContract && trade.inputAmount.currency.isToken) {
         return [
@@ -221,9 +172,21 @@ function useSwapCallArguments(
       }
       return [
         {
-          address: swapRouterAddress,
-          calldata,
-          value,
+          address: dragoContract.address,
+          calldata: dragoContract.interface.encodeFunctionData('batchOperateOnExchange', [
+            swapRouterAddress,
+            [
+              // TODO: wrap value in ETH
+              //wrapETH(value)
+              approveAmountCalldata(trade.maximumAmountIn(allowedSlippage), swapRouterAddress),
+              {
+                to: dragoContract.address,
+                value: '0x0',
+                data: calldata,
+              },
+            ],
+          ]),
+          value: '0x0',
         },
       ]
     }
