@@ -49,12 +49,12 @@ export function getContract(address: string, ABI: any, library: Web3Provider, ac
 
 // account is optional
 export function getRouterContract(_: number, library: Web3Provider, account?: string): Contract {
-  return getContract(V2_ROUTER_ADDRESS, IUniswapV2Router02ABI, library, account)
+  return getContract(V2_ROUTER_ADDRESS as string, IUniswapV2Router02ABI, library, account ?? undefined)
 }
 
 // account, recipient are optional
 export function getDragoContract(_: number, library: Web3Provider, account?: string, recipient?: string): Contract {
-  return getContract(recipient, Dragov2_ABI, library, account)
+  return getContract(recipient as string, Dragov2_ABI, library, account ?? undefined)
 }
 
 export function escapeRegExp(string: string): string {

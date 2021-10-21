@@ -5,11 +5,12 @@ import JSBI from 'jsbi'
 import { ReactNode, useCallback } from 'react'
 import { useAppDispatch, useAppSelector } from 'state/hooks'
 
+import useENSAddress from '../../hooks/useENSAddress'
 import { useTotalSupply } from '../../hooks/useTotalSupply'
 import { useV2Pair } from '../../hooks/useV2Pairs'
 import { useActiveWeb3React } from '../../hooks/web3'
 import { AppState } from '../index'
-import { tryParseAmount } from '../swap/hooks'
+import { tryParseAmount, useSwapState } from '../swap/hooks'
 import { useTokenBalances } from '../wallet/hooks'
 import { Field, typeInput } from './actions'
 

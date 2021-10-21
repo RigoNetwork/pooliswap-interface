@@ -5,6 +5,7 @@ import JSBI from 'jsbi'
 import { ReactNode, useCallback, useMemo } from 'react'
 import { useAppDispatch, useAppSelector } from 'state/hooks'
 
+import useENS from '../../hooks/useENS'
 import { useTotalSupply } from '../../hooks/useTotalSupply'
 import { PairState, useV2Pair } from '../../hooks/useV2Pairs'
 import { useActiveWeb3React } from '../../hooks/web3'
