@@ -7,6 +7,7 @@ import { SwapRouter, Trade as V3Trade } from '@uniswap/v3-sdk'
 import { ReactNode, useMemo } from 'react'
 
 import { AUniswap_INTERFACE } from '../constants/abis/auniswap'
+import { AUniswapV3_INTERFACE } from '../constants/abis/auniswapv3'
 import { SWAP_ROUTER_ADDRESSES, V2_ROUTER_ADDRESS } from '../constants/addresses'
 import { TransactionType } from '../state/transactions/actions'
 import { useTransactionAdder } from '../state/transactions/hooks'
@@ -152,6 +153,7 @@ function useSwapCallArguments(
         deadline: deadline.toString(),
         ...(signatureData ? null : {}),
       })
+      const wrapData = AUniswapV3_INTERFACE.encodeFunctionData('wrapETH', [value])
       if (argentWalletContract && trade.inputAmount.currency.isToken) {
         return [
           {
@@ -176,14 +178,9 @@ function useSwapCallArguments(
           calldata: dragoContract.interface.encodeFunctionData('batchOperateOnExchange', [
             swapRouterAddress,
             [
-              // TODO: wrap value in ETH
-              //wrapETH(value)
-              approveAmountCalldata(trade.maximumAmountIn(allowedSlippage), swapRouterAddress),
-              {
-                to: dragoContract.address,
-                value: '0x0',
-                data: calldata,
-              },
+              // wrap ETH (will not write onchain if value is 0)
+              wrapData,
+              calldata,
             ],
           ]),
           value: '0x0',
