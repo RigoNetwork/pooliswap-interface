@@ -30,7 +30,7 @@ enum SwapCallbackState {
 
 interface SwapCall {
   address: string
-  calldata: string | undefined
+  calldata: string
   value: string
 }
 
@@ -65,7 +65,6 @@ function useSwapCallArguments(
 
   const { address: recipientAddress } = useENS(recipientAddressOrName)
   const recipient = recipientAddressOrName === null ? account : recipientAddress
-
   const deadline = useTransactionDeadline()
   const routerContract = useV2RouterContract()
   const argentWalletContract = useArgentWalletContract()
@@ -91,9 +90,6 @@ function useSwapCallArguments(
           deadline: deadline.toNumber(),
         })
       )
-      // TODO: check if correct
-      const uniswapMethodName = swapMethods[0].methodName
-      const argsWithEth = swapMethods[0].args
 
       const uniswapMethodName = swapMethods[0].methodName
       const argsWithEth = swapMethods[0].args
@@ -126,7 +122,6 @@ function useSwapCallArguments(
             address: argentWalletContract.address,
             calldata: argentWalletContract.interface.encodeFunctionData('wc_multiCall', [
               [
-                // TODO: this is not needed with RigoBlock
                 approveAmountCalldata(trade.maximumAmountIn(allowedSlippage), routerContract.address),
                 {
                   to: routerContract.address,
@@ -148,7 +143,6 @@ function useSwapCallArguments(
       })
     } else {
       // trade is V3Trade
-      const swapMethods = []
       const swapRouterAddress = chainId ? SWAP_ROUTER_ADDRESSES[chainId] : undefined
       if (!swapRouterAddress) return []
 
@@ -176,23 +170,6 @@ function useSwapCallArguments(
           },
         ]
       }
-      // TODO must handle eth swaps, which have different encoded pack,
-      // slice signature, append eth value and append adapter
-      // signature (which is different when eth is involved)
-
-      // add value to call parameters
-      /*
-      if (!isZero(value)) {
-        argsWithEth.unshift(value)
-      }
-      */
-
-      swapMethods.push({
-        methodName: 'operateOnExchange',
-        args: [swapRouterAddress, [calldata]],
-        value: '0x0',
-      })
-
       return [
         {
           address: dragoContract.address,

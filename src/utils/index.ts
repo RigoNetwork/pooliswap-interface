@@ -48,11 +48,9 @@ export function getContract(address: string, ABI: any, library: Web3Provider, ac
 }
 
 // account is optional
-/*
 export function getRouterContract(_: number, library: Web3Provider, account?: string): Contract {
   return getContract(V2_ROUTER_ADDRESS as string, IUniswapV2Router02ABI, library, account ?? undefined)
 }
-*/
 
 // account, recipient are optional
 export function getDragoContract(_: number, library: Web3Provider, account?: string, recipient?: string): Contract {
