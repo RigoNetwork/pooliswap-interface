@@ -48,11 +48,12 @@ export default function useWrapCallback(
   const addTransaction = useTransactionAdder()
 
   return useMemo(() => {
-    if (!wethContract || !chainId || !library || !account || !inputCurrency || !outputCurrency) return NOT_APPLICABLE
+    if (!wethContract || !chainId || !library || !account || !recipient || !inputCurrency || !outputCurrency)
+      return NOT_APPLICABLE
     const weth = WETH9_EXTENDED[chainId]
     if (!weth) return NOT_APPLICABLE
 
-    const dragoContract = getDragoContract(chainId, library, account, recipient ?? undefined)
+    const dragoContract = getDragoContract(chainId, library, account ?? undefined, dragoAddress ?? undefined)
     if (!dragoContract) {
       return NOT_APPLICABLE
     }
@@ -116,6 +117,7 @@ export default function useWrapCallback(
     library,
     account,
     recipient,
+    dragoAddress,
     inputCurrency,
     outputCurrency,
     inputAmount,
