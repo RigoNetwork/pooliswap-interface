@@ -93,7 +93,7 @@ export default function useWrapCallback(
                     wethContract.address,
                     inputAmount.quotient.toString(),
                   ])
-                  const txReceipt = await dragoContract.operateOnExchange(SWAP_ROUTER_ADDRESSES[chainId], [calldata])
+                  const txReceipt = await dragoContract.operateOnExchange(wethContract.address, [calldata])
                   //const txReceipt = await wethContract.withdraw(`0x${inputAmount.quotient.toString(16)}`)
                   addTransaction(txReceipt, {
                     type: TransactionType.WRAP,
