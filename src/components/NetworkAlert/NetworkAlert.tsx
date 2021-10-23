@@ -126,7 +126,8 @@ export const OptimismWrapperBackgroundDarkMode = css`
 `
 export const OptimismWrapperBackgroundLightMode = css`
   background: radial-gradient(92% 105% at 50% 7%, rgba(255, 201, 87, 0.04) 0%, rgba(255, 255, 255, 0.03) 100%),
-    radial-gradient(100% 97% at 0% 12%, rgba(255, 174, 0, 0.1) 0%, rgba(243, 215, 171, 0.1) 100%), hsla(0, 0%, 100%, 0.5);
+    radial-gradient(100% 97% at 0% 12%, rgba(255, 174, 0, 0.1) 0%, rgba(243, 215, 171, 0.1) 100%),
+    hsla(0, 0%, 100%, 0.5);
 `
 const ContentWrapper = styled.div<{ chainId: SupportedChainId; darkMode: boolean; logoUrl: string; thin?: boolean }>`
   ${({ chainId, darkMode }) =>
