@@ -1,5 +1,5 @@
 import { Trans } from '@lingui/macro'
-import { ButtonGray, ButtonOutlined, ButtonPrimary } from 'components/Button'
+import { ButtonGray /*, ButtonOutlined*/, ButtonPrimary } from 'components/Button'
 import { AutoColumn } from 'components/Column'
 import DowntimeWarning from 'components/DowntimeWarning'
 import { FlyoutAlignment, NewMenu } from 'components/Menu'
@@ -12,7 +12,7 @@ import { L2_CHAIN_IDS } from 'constants/chains'
 import { useV3Positions } from 'hooks/useV3Positions'
 import { useActiveWeb3React } from 'hooks/web3'
 import { useContext } from 'react'
-import { BookOpen, ChevronDown, ChevronsRight, Inbox, Layers, PlusCircle } from 'react-feather'
+import { BookOpen, ChevronDown, /*ChevronsRight,*/ Inbox, /*Layers,*/ PlusCircle } from 'react-feather'
 import { Link } from 'react-router-dom'
 import { useWalletModalToggle } from 'state/application/hooks'
 import { useUserHideClosedPositions } from 'state/user/hooks'
@@ -109,6 +109,7 @@ const MainContentWrapper = styled.main`
   flex-direction: column;
 `
 
+/*
 const ShowInactiveToggle = styled.div`
   display: flex;
   align-items: center;
@@ -127,13 +128,14 @@ const ResponsiveRow = styled(RowFixed)`
     flex-direction: column-reverse;
   `};
 `
+*/
 
 export default function Pool() {
   const { account, chainId } = useActiveWeb3React()
   const toggleWalletModal = useWalletModalToggle()
 
   const theme = useContext(ThemeContext)
-  const [userHideClosedPositions, setUserHideClosedPositions] = useUserHideClosedPositions()
+  const [userHideClosedPositions /*, setUserHideClosedPositions*/] = useUserHideClosedPositions()
 
   const { positions, loading: positionsLoading } = useV3Positions(account)
 
@@ -160,6 +162,7 @@ export default function Pool() {
       link: '/add/ETH',
       external: false,
     },
+    /*
     {
       content: (
         <MenuItem>
@@ -180,6 +183,7 @@ export default function Pool() {
       link: '/pool/v2',
       external: false,
     },
+    */
     {
       content: (
         <MenuItem>
@@ -264,6 +268,7 @@ export default function Pool() {
               )}
             </MainContentWrapper>
 
+            {/*
             <ResponsiveRow>
               {showV2Features && (
                 <RowFixed>
@@ -318,6 +323,7 @@ export default function Pool() {
                 </ShowInactiveToggle>
               ) : null}
             </ResponsiveRow>
+*/}
           </AutoColumn>
         </AutoColumn>
       </PageWrapper>
