@@ -211,6 +211,6 @@ html {
 }
 
 a {
- color: ${({ theme }) => theme.blue1}; 
+ color: ${({ theme }) => theme.blue1};
 }
 `

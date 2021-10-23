@@ -121,12 +121,12 @@ export const ArbitrumWrapperBackgroundLightMode = css`
     radial-gradient(circle at top left, hsla(206, 50%, 75%, 0.01), hsla(215, 79%, 51%, 0.12)), hsla(0, 0%, 100%, 0.1);
 `
 export const OptimismWrapperBackgroundDarkMode = css`
-  background: radial-gradient(948% 292% at 42% 0%, rgba(255, 58, 212, 0.2) 0%, rgba(255, 255, 255, 0.1) 100%),
-    radial-gradient(98% 96% at 2% 0%, rgba(255, 39, 39, 0.5) 0%, rgba(235, 0, 255, 0.345) 96%);
+  background: radial-gradient(948% 292% at 42% 0%, rgba(255, 201, 87, 0.2) 0%, rgba(255, 255, 255, 0.1) 100%),
+    radial-gradient(98% 96% at 2% 0%, rgba(255, 235, 191, 0.5) 0%, rgba(255, 174, 0, 0.345) 96%);
 `
 export const OptimismWrapperBackgroundLightMode = css`
-  background: radial-gradient(92% 105% at 50% 7%, rgba(255, 58, 212, 0.04) 0%, rgba(255, 255, 255, 0.03) 100%),
-    radial-gradient(100% 97% at 0% 12%, rgba(235, 0, 255, 0.1) 0%, rgba(243, 19, 19, 0.1) 100%), hsla(0, 0%, 100%, 0.5);
+  background: radial-gradient(92% 105% at 50% 7%, rgba(255, 201, 87, 0.04) 0%, rgba(255, 255, 255, 0.03) 100%),
+    radial-gradient(100% 97% at 0% 12%, rgba(255, 174, 0, 0.1) 0%, rgba(243, 215, 171, 0.1) 100%), hsla(0, 0%, 100%, 0.5);
 `
 const ContentWrapper = styled.div<{ chainId: SupportedChainId; darkMode: boolean; logoUrl: string; thin?: boolean }>`
   ${({ chainId, darkMode }) =>
