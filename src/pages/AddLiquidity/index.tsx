@@ -6,7 +6,7 @@ import { FeeAmount, NonfungiblePositionManager } from '@uniswap/v3-sdk'
 import DowntimeWarning from 'components/DowntimeWarning'
 import UnsupportedCurrencyFooter from 'components/swap/UnsupportedCurrencyFooter'
 import { useCallback, useContext, useEffect, useState } from 'react'
-import { AlertTriangle } from 'react-feather'
+import { AlertTriangle, ArrowDown } from 'react-feather'
 import ReactGA from 'react-ga'
 import { RouteComponentProps } from 'react-router-dom'
 import { Text } from 'rebass'
@@ -18,6 +18,7 @@ import {
 } from 'state/mint/v3/hooks'
 import { ThemeContext } from 'styled-components/macro'
 
+import AddressInputPanel from '../../components/AddressInputPanel'
 import { ButtonError, ButtonLight, ButtonPrimary, ButtonText, ButtonYellow } from '../../components/Button'
 import { BlueCard, OutlineCard, YellowCard } from '../../components/Card'
 import { AutoColumn } from '../../components/Column'
@@ -31,6 +32,7 @@ import RangeSelector from '../../components/RangeSelector'
 import PresetsButtons from '../../components/RangeSelector/PresetsButtons'
 import RateToggle from '../../components/RateToggle'
 import Row, { AutoRow, RowBetween, RowFixed } from '../../components/Row'
+import { ArrowWrapper } from '../../components/swap/styleds'
 import { SwitchLocaleLink } from '../../components/SwitchLocaleLink'
 import TransactionConfirmationModal, { ConfirmationModalContent } from '../../components/TransactionConfirmationModal'
 //import { AUniswap_INTERFACE } from '../../constants/abis/auniswap'
@@ -43,7 +45,7 @@ import { ApprovalState, useApproveCallback } from '../../hooks/useApproveCallbac
 import { useArgentWalletContract } from '../../hooks/useArgentWalletContract'
 import { useV3NFTPositionManagerContract } from '../../hooks/useContract'
 import { useDerivedPositionInfo } from '../../hooks/useDerivedPositionInfo'
-import useENSAddress from '../../hooks/useENSAddress'
+import useENS from '../../hooks/useENS'
 import { useIsSwapUnsupported } from '../../hooks/useIsSwapUnsupported'
 import useTransactionDeadline from '../../hooks/useTransactionDeadline'
 import { useUSDCValue } from '../../hooks/useUSDCPrice'
@@ -51,7 +53,7 @@ import { useV3PositionFromTokenId } from '../../hooks/useV3Positions'
 import { useActiveWeb3React } from '../../hooks/web3'
 import { useWalletModalToggle } from '../../state/application/hooks'
 import { Bound, Field } from '../../state/mint/v3/actions'
-import { /*useSwapActionHandlers,*/ useSwapState } from '../../state/swap/hooks'
+//import { useSwapActionHandlers, useSwapState } from '../../state/swap/hooks'
 import { TransactionType } from '../../state/transactions/actions'
 import { useTransactionAdder } from '../../state/transactions/hooks'
 import { useIsExpertMode, useUserSlippageToleranceWithDefault } from '../../state/user/hooks'
@@ -113,7 +115,7 @@ export default function AddLiquidity({
     baseCurrency && currencyB && baseCurrency.wrapped.equals(currencyB.wrapped) ? undefined : currencyB
 
   // mint state
-  const { independentField, typedValue, startPriceTypedValue } = useV3MintState()
+  const { independentField, typedValue, startPriceTypedValue, recipient } = useV3MintState()
 
   const {
     pool,
@@ -142,7 +144,7 @@ export default function AddLiquidity({
     existingPosition
   )
 
-  const { onFieldAInput, onFieldBInput, onLeftRangeInput, onRightRangeInput, onStartPriceInput } =
+  const { onFieldAInput, onFieldBInput, onLeftRangeInput, onRightRangeInput, onStartPriceInput, onChangeRecipient } =
     useV3MintActionHandlers(noLiquidity)
 
   const isValid = !errorMessage && !invalidRange
@@ -192,10 +194,6 @@ export default function AddLiquidity({
     },
     {}
   )
-
-  //const { onChangeRecipient } = useSwapActionHandlers()
-  const { recipient } = useSwapState()
-  const { address: recipientAddress } = useENSAddress(recipient)
   const argentWalletContract = useArgentWalletContract()
 
   let [approvalA] = useApproveCallback(
@@ -223,6 +221,9 @@ export default function AddLiquidity({
   const allowedSlippage = useUserSlippageToleranceWithDefault(
     outOfRange ? ZERO_PERCENT : DEFAULT_ADD_IN_RANGE_SLIPPAGE_TOLERANCE
   )
+
+  const recipientLookup = useENS(recipient ?? undefined)
+  const recipientAddress = recipientLookup.address
 
   // only called on optimism, atm
   async function onCreate() {
@@ -292,7 +293,7 @@ export default function AddLiquidity({
 
     if (position && account && deadline) {
       const useNative = baseCurrency.isNative ? baseCurrency : quoteCurrency.isNative ? quoteCurrency : undefined
-      const { calldata, value } =
+      const { calldata /*, value*/ } =
         hasExistingPosition && tokenId
           ? NonfungiblePositionManager.addCallParameters(position, {
               tokenId,
@@ -308,10 +309,17 @@ export default function AddLiquidity({
               createPool: noLiquidity,
             })
 
+      // we encode RigoBlock transaction
+      // TODO: check if we must pass value here
+      const dragoCalldata = dragoContract.interface.encodeFunctionData('operateOnExchange', [
+        NONFUNGIBLE_POSITION_MANAGER_ADDRESSES[chainId],
+        [calldata],
+      ])
+
       let txn: { to: string; data: string; value: string } = {
-        to: NONFUNGIBLE_POSITION_MANAGER_ADDRESSES[chainId],
-        data: calldata,
-        value,
+        to: dragoContract.address,
+        data: dragoCalldata,
+        value: '0x0', //value,
       }
 
       if (argentWalletContract) {
@@ -645,6 +653,16 @@ export default function AddLiquidity({
             )}
           </AddRemoveTabs>
           <Wrapper>
+            {recipient !== null ? (
+              <>
+                <AddressInputPanel id="recipient" value={recipient} onChange={onChangeRecipient} />
+                <AutoRow justify="space-between" style={{ padding: '0 1rem' }}>
+                  <ArrowWrapper clickable={false}>
+                    <ArrowDown size="16" color={theme.text2} />
+                  </ArrowWrapper>
+                </AutoRow>
+              </>
+            ) : null}
             <ResponsiveTwoColumns wide={!hasExistingPosition}>
               <AutoColumn gap="lg">
                 {!hasExistingPosition && (
