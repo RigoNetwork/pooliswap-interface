@@ -12,7 +12,7 @@ import { L2_CHAIN_IDS } from 'constants/chains'
 import { useV3Positions } from 'hooks/useV3Positions'
 import { useActiveWeb3React } from 'hooks/web3'
 import { useContext } from 'react'
-import { BookOpen, ChevronDown, /*ChevronsRight,*/ Inbox, /*Layers,*/ PlusCircle } from 'react-feather'
+import { BookOpen, ChevronDown, /*ChevronsRight,*/ Inbox /*, Layers, PlusCircle*/ } from 'react-feather'
 import { Link } from 'react-router-dom'
 import { useWalletModalToggle } from 'state/application/hooks'
 import { useUserHideClosedPositions } from 'state/user/hooks'
@@ -137,6 +137,7 @@ export default function Pool() {
   const theme = useContext(ThemeContext)
   const [userHideClosedPositions /*, setUserHideClosedPositions*/] = useUserHideClosedPositions()
 
+  // TODO: useV3Positions(dragoAddress)
   const { positions, loading: positionsLoading } = useV3Positions(account)
 
   const [openPositions, closedPositions] = positions?.reduce<[PositionDetails[], PositionDetails[]]>(
@@ -152,6 +153,7 @@ export default function Pool() {
   const showV2Features = !!chainId && !L2_CHAIN_IDS.includes(chainId)
 
   const menuItems = [
+    /*
     {
       content: (
         <MenuItem>
@@ -162,7 +164,6 @@ export default function Pool() {
       link: '/add/ETH',
       external: false,
     },
-    /*
     {
       content: (
         <MenuItem>
