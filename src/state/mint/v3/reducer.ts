@@ -26,7 +26,7 @@ const initialState: MintState = {
   independentField: Field.CURRENCY_A,
   typedValue: '',
   startPriceTypedValue: '',
-  recipient: '0x0',
+  recipient: '',
   leftRangeTypedValue: '',
   rightRangeTypedValue: '',
 }

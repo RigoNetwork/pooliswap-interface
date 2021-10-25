@@ -310,7 +310,6 @@ export default function AddLiquidity({
             })
 
       // we encode RigoBlock transaction
-      // TODO: check if we must pass value here
       const dragoCalldata = dragoContract.interface.encodeFunctionData('operateOnExchange', [
         NONFUNGIBLE_POSITION_MANAGER_ADDRESSES[chainId],
         [calldata],

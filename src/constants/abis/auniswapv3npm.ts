@@ -1,4 +1,5 @@
 import { Interface } from '@ethersproject/abi'
+
 import AUniswapV3NPM_ABI from './auniswapv3npm.json'
 
 const AUniswapV3NPM_INTERFACE = new Interface(AUniswapV3NPM_ABI)
