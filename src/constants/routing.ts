@@ -76,6 +76,7 @@ export const CUSTOM_BASES: { [chainId: number]: { [tokenAddress: string]: Token[
  */
 export const COMMON_BASES: ChainCurrencyList = {
   [SupportedChainId.MAINNET]: [
+    // TODO: comment following line to remove ETH option on this chain
     ExtendedEther.onChain(SupportedChainId.MAINNET),
     DAI,
     USDC,
@@ -84,6 +85,7 @@ export const COMMON_BASES: ChainCurrencyList = {
     WETH9_EXTENDED[SupportedChainId.MAINNET],
   ],
   [SupportedChainId.ROPSTEN]: [
+    // TODO: comment following line to remove ETH option on this chain
     ExtendedEther.onChain(SupportedChainId.ROPSTEN),
     WETH9_EXTENDED[SupportedChainId.ROPSTEN],
   ],

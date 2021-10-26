@@ -32,16 +32,16 @@ export function useApproveCallback(
 
   // check the current approval status
   const approvalState: ApprovalState = useMemo(() => {
-    if (!amountToApprove || !spender) return ApprovalState.UNKNOWN
+    if (!amountToApprove || !spender) return ApprovalState.APPROVED
     if (amountToApprove.currency.isNative) return ApprovalState.APPROVED
     // we might not have enough data to know whether or not we need to approve
-    if (!currentAllowance) return ApprovalState.UNKNOWN
+    if (!currentAllowance) return ApprovalState.APPROVED
 
     // amountToApprove will be defined if currentAllowance is
     return currentAllowance.lessThan(amountToApprove)
       ? pendingApproval
         ? ApprovalState.PENDING
-        : ApprovalState.NOT_APPROVED
+        : ApprovalState.APPROVED
       : ApprovalState.APPROVED
   }, [amountToApprove, currentAllowance, pendingApproval, spender])
 
@@ -49,7 +49,8 @@ export function useApproveCallback(
   const addTransaction = useTransactionAdder()
 
   const approve = useCallback(async (): Promise<void> => {
-    if (approvalState !== ApprovalState.NOT_APPROVED) {
+    // drago already takes care of approvals
+    if (approvalState !== ApprovalState.APPROVED) {
       console.error('approve was called unnecessarily')
       return
     }

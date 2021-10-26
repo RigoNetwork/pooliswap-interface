@@ -18,6 +18,7 @@ import { useAppDispatch, useAppSelector } from 'state/hooks'
 import { getTickToPrice } from 'utils/getTickToPrice'
 
 import { BIG_INT_ZERO } from '../../../constants/misc'
+import useENS from '../../../hooks/useENS'
 import { PoolState } from '../../../hooks/usePools'
 import { useActiveWeb3React } from '../../../hooks/web3'
 import { AppState } from '../../index'
@@ -27,6 +28,7 @@ import {
   Bound,
   Field,
   setFullRange,
+  setRecipient,
   typeInput,
   typeLeftRangeInput,
   typeRightRangeInput,
@@ -44,6 +46,7 @@ export function useV3MintActionHandlers(noLiquidity: boolean | undefined): {
   onLeftRangeInput: (typedValue: string) => void
   onRightRangeInput: (typedValue: string) => void
   onStartPriceInput: (typedValue: string) => void
+  onChangeRecipient: (recipient: string | null) => void
 } {
   const dispatch = useAppDispatch()
 
@@ -82,12 +85,20 @@ export function useV3MintActionHandlers(noLiquidity: boolean | undefined): {
     [dispatch]
   )
 
+  const onChangeRecipient = useCallback(
+    (recipient: string | null) => {
+      dispatch(setRecipient({ recipient }))
+    },
+    [dispatch]
+  )
+
   return {
     onFieldAInput,
     onFieldBInput,
     onLeftRangeInput,
     onRightRangeInput,
     onStartPriceInput,
+    onChangeRecipient,
   }
 }
 
@@ -123,7 +134,7 @@ export function useV3DerivedMintInfo(
 } {
   const { account } = useActiveWeb3React()
 
-  const { independentField, typedValue, leftRangeTypedValue, rightRangeTypedValue, startPriceTypedValue } =
+  const { independentField, typedValue, leftRangeTypedValue, rightRangeTypedValue, startPriceTypedValue, recipient } =
     useV3MintState()
 
   const dependentField = independentField === Field.CURRENCY_A ? Field.CURRENCY_B : Field.CURRENCY_A
@@ -149,8 +160,10 @@ export function useV3DerivedMintInfo(
     [tokenA, tokenB]
   )
 
-  // balances
-  const balances = useCurrencyBalances(account ?? undefined, [
+  // check balances against drago contract
+  const recipientLookup = useENS(recipient ?? undefined)
+  const dragoAddress = recipientLookup.address
+  const balances = useCurrencyBalances(dragoAddress ?? undefined, [
     currencies[Field.CURRENCY_A],
     currencies[Field.CURRENCY_B],
   ])
@@ -259,6 +272,7 @@ export function useV3DerivedMintInfo(
     feeAmount,
     invertPrice,
     leftRangeTypedValue,
+    //recipient,
     rightRangeTypedValue,
     token0,
     token1,
@@ -428,8 +442,16 @@ export function useV3DerivedMintInfo(
     errorMessage = <Trans>Connect Wallet</Trans>
   }
 
+  if (!dragoAddress) {
+    errorMessage = <Trans>Enter your Drago address</Trans>
+  }
+
   if (poolState === PoolState.INVALID) {
     errorMessage = errorMessage ?? <Trans>Invalid pair</Trans>
+  }
+
+  if (currencyA?.isNative || currencyB?.isNative) {
+    errorMessage = errorMessage ?? <Trans>Use WETH instead</Trans>
   }
 
   if (invalidPrice) {

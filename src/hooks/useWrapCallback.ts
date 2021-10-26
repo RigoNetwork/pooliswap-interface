@@ -1,6 +1,9 @@
 import { Currency } from '@uniswap/sdk-core'
 import { useMemo } from 'react'
 
+import { AUniswapV3_INTERFACE } from '../constants/abis/auniswapv3'
+import { AWETH_INTERFACE } from '../constants/abis/aweth'
+import { SWAP_ROUTER_ADDRESSES } from '../constants/addresses'
 import { WETH9_EXTENDED } from '../constants/tokens'
 import useENS from '../hooks/useENS'
 import { tryParseAmount } from '../state/swap/hooks'
@@ -8,6 +11,7 @@ import { useSwapState } from '../state/swap/hooks'
 import { TransactionType } from '../state/transactions/actions'
 import { useTransactionAdder } from '../state/transactions/hooks'
 import { useCurrencyBalance } from '../state/wallet/hooks'
+import { getDragoContract } from '../utils'
 import { useWETHContract } from './useContract'
 import { useActiveWeb3React } from './web3'
 
@@ -29,7 +33,7 @@ export default function useWrapCallback(
   outputCurrency: Currency | undefined | null,
   typedValue: string | undefined
 ): { wrapType: WrapType; execute?: undefined | (() => Promise<void>); inputError?: string } {
-  const { chainId } = useActiveWeb3React()
+  const { account, chainId, library } = useActiveWeb3React()
   const wethContract = useWETHContract()
 
   // recipientLookup is drago address
@@ -44,9 +48,15 @@ export default function useWrapCallback(
   const addTransaction = useTransactionAdder()
 
   return useMemo(() => {
-    if (!wethContract || !chainId || !inputCurrency || !outputCurrency) return NOT_APPLICABLE
+    if (!wethContract || !chainId || !library || !account || !recipient || !inputCurrency || !outputCurrency)
+      return NOT_APPLICABLE
     const weth = WETH9_EXTENDED[chainId]
     if (!weth) return NOT_APPLICABLE
+
+    const dragoContract = getDragoContract(chainId, library, account ?? undefined, dragoAddress ?? undefined)
+    if (!dragoContract) {
+      return NOT_APPLICABLE
+    }
 
     const hasInputAmount = Boolean(inputAmount?.greaterThan('0'))
     const sufficientBalance = inputAmount && balance && !balance.lessThan(inputAmount)
@@ -58,7 +68,9 @@ export default function useWrapCallback(
           sufficientBalance && inputAmount
             ? async () => {
                 try {
-                  const txReceipt = await wethContract.deposit({ value: `0x${inputAmount.quotient.toString(16)}` })
+                  const calldata = AUniswapV3_INTERFACE.encodeFunctionData('wrapETH', [inputAmount.quotient.toString()])
+                  const txReceipt = await dragoContract.operateOnExchange(SWAP_ROUTER_ADDRESSES[chainId], [calldata])
+                  //const txReceipt = await wethContract.deposit({ value: `0x${inputAmount.quotient.toString(16)}` })
                   addTransaction(txReceipt, {
                     type: TransactionType.WRAP,
                     unwrapped: false,
@@ -78,7 +90,12 @@ export default function useWrapCallback(
           sufficientBalance && inputAmount
             ? async () => {
                 try {
-                  const txReceipt = await wethContract.withdraw(`0x${inputAmount.quotient.toString(16)}`)
+                  const calldata = AWETH_INTERFACE.encodeFunctionData('unwrapEth', [
+                    wethContract.address,
+                    inputAmount.quotient.toString(),
+                  ])
+                  const txReceipt = await dragoContract.operateOnExchange(wethContract.address, [calldata])
+                  //const txReceipt = await wethContract.withdraw(`0x${inputAmount.quotient.toString(16)}`)
                   addTransaction(txReceipt, {
                     type: TransactionType.WRAP,
                     unwrapped: true,
@@ -94,5 +111,17 @@ export default function useWrapCallback(
     } else {
       return NOT_APPLICABLE
     }
-  }, [wethContract, chainId, inputCurrency, outputCurrency, inputAmount, balance, addTransaction])
+  }, [
+    wethContract,
+    chainId,
+    library,
+    account,
+    recipient,
+    dragoAddress,
+    inputCurrency,
+    outputCurrency,
+    inputAmount,
+    balance,
+    addTransaction,
+  ])
 }

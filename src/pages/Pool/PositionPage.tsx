@@ -15,8 +15,10 @@ import { Dots } from 'components/swap/styleds'
 import Toggle from 'components/Toggle'
 import TransactionConfirmationModal, { ConfirmationModalContent } from 'components/TransactionConfirmationModal'
 import { SupportedChainId } from 'constants/chains'
+import { WETH9_EXTENDED } from 'constants/tokens'
 import { useToken } from 'hooks/Tokens'
 import { useV3NFTPositionManagerContract } from 'hooks/useContract'
+import useENS from 'hooks/useENS'
 import useIsTickAtLimit from 'hooks/useIsTickAtLimit'
 import { PoolState, usePool } from 'hooks/usePools'
 import useUSDCPrice from 'hooks/useUSDCPrice'
@@ -28,9 +30,11 @@ import ReactGA from 'react-ga'
 import { Link, RouteComponentProps } from 'react-router-dom'
 import { Bound } from 'state/mint/v3/actions'
 import { useSingleCallResult } from 'state/multicall/hooks'
+import { useSwapState } from 'state/swap/hooks'
 import { useIsTransactionPending, useTransactionAdder } from 'state/transactions/hooks'
 import styled from 'styled-components/macro'
 import { ExternalLink, HideExtraSmall, TYPE } from 'theme'
+import { getDragoContract } from 'utils'
 import { currencyId } from 'utils/currencyId'
 import { formatCurrencyAmount } from 'utils/formatCurrencyAmount'
 import { formatTickPrice } from 'utils/formatTickPrice'
@@ -324,6 +328,10 @@ export function PositionPage({
   const parsedTokenId = tokenIdFromUrl ? BigNumber.from(tokenIdFromUrl) : undefined
   const { loading, position: positionDetails } = useV3PositionFromTokenId(parsedTokenId)
 
+  const { recipient } = useSwapState()
+  const recipientLookup = useENS(recipient ?? undefined)
+  const recipientAddress = recipientLookup.address
+
   const {
     token0: token0Address,
     token1: token1Address,
@@ -341,11 +349,11 @@ export function PositionPage({
 
   const metadata = usePositionTokenURI(parsedTokenId)
 
-  const currency0 = token0 ? unwrappedToken(token0) : undefined
-  const currency1 = token1 ? unwrappedToken(token1) : undefined
+  let currency0 = token0 ? unwrappedToken(token0) : undefined
+  let currency1 = token1 ? unwrappedToken(token1) : undefined
 
   // flag for receiving WETH
-  const [receiveWETH, setReceiveWETH] = useState(false)
+  const [receiveWETH, setReceiveWETH] = useState(true)
 
   // construct Position from details returned
   const [poolState, pool] = usePool(token0 ?? undefined, token1 ?? undefined, feeAmount)
@@ -420,21 +428,32 @@ export function PositionPage({
   const addTransaction = useTransactionAdder()
   const positionManager = useV3NFTPositionManagerContract()
   const collect = useCallback(() => {
-    if (!chainId || !feeValue0 || !feeValue1 || !positionManager || !account || !tokenId || !library) return
+    if (!chainId || !feeValue0 || !feeValue1 || !positionManager || !account || !recipient || !tokenId || !library)
+      return
 
     setCollecting(true)
 
-    const { calldata, value } = NonfungiblePositionManager.collectCallParameters({
+    const dragoContract = getDragoContract(chainId, library, account ?? undefined, recipientAddress ?? undefined)
+    if (!dragoContract) {
+      return
+    }
+
+    const { calldata } = NonfungiblePositionManager.collectCallParameters({
       tokenId: tokenId.toString(),
       expectedCurrencyOwed0: feeValue0,
       expectedCurrencyOwed1: feeValue1,
       recipient: account,
     })
 
+    const dragoCalldata = dragoContract.interface.encodeFunctionData('operateOnExchange', [
+      positionManager.address,
+      [calldata],
+    ])
+
     const txn = {
-      to: positionManager.address,
-      data: calldata,
-      value,
+      to: dragoContract.address,
+      data: dragoCalldata,
+      value: '0x0',
     }
 
     library
@@ -470,10 +489,21 @@ export function PositionPage({
         setCollecting(false)
         console.error(error)
       })
-  }, [chainId, feeValue0, feeValue1, positionManager, account, tokenId, addTransaction, library])
+  }, [
+    chainId,
+    feeValue0,
+    feeValue1,
+    positionManager,
+    account,
+    recipient,
+    recipientAddress,
+    tokenId,
+    addTransaction,
+    library,
+  ])
 
   const owner = useSingleCallResult(!!tokenId ? positionManager : null, 'ownerOf', [tokenId]).result?.[0]
-  const ownsNFT = owner === account || positionDetails?.operator === account
+  const ownsNFT = owner === recipientAddress || positionDetails?.operator === recipientAddress
 
   const feeValueUpper = inverted ? feeValue0 : feeValue1
   const feeValueLower = inverted ? feeValue1 : feeValue0
@@ -524,6 +554,16 @@ export function PositionPage({
       !collectMigrationHash &&
       !onOptimisticChain
   )
+
+  // ensure we use WETH instead of ETH when increasing position
+  if (chainId && currency0 && currency1) {
+    if (currency0.isNative) {
+      currency0 = WETH9_EXTENDED[chainId]
+    }
+    if (currency1.isNative) {
+      currency1 = WETH9_EXTENDED[chainId]
+    }
+  }
 
   return loading || poolState === PoolState.LOADING || !feeAmount ? (
     <LoadingRows>

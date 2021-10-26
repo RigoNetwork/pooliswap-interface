@@ -389,6 +389,19 @@ export default function Swap({ history }: RouteComponentProps) {
           />
 
           <AutoColumn gap={'sm'}>
+            {recipient !== null && !showWrap ? (
+              <>
+                <AddressInputPanel id="recipient" value={recipient} onChange={onChangeRecipient} />
+                <AutoRow justify="space-between" style={{ padding: '0 1rem' }}>
+                  <ArrowWrapper clickable={false}>
+                    <ArrowDown size="16" color={theme.text2} />
+                  </ArrowWrapper>
+                  {/*<LinkStyledButton id="remove-recipient-button" onClick={() => onChangeRecipient(null)}>
+                    - Remove send
+                  </LinkStyledButton>*/}
+                </AutoRow>
+              </>
+            ) : null}
             <div style={{ display: 'relative' }}>
               <CurrencyInputPanel
                 label={
@@ -432,20 +445,6 @@ export default function Swap({ history }: RouteComponentProps) {
                 loading={independentField === Field.INPUT && routeIsSyncing}
               />
             </div>
-
-            {recipient !== null && !showWrap ? (
-              <>
-                <AutoRow justify="space-between" style={{ padding: '0 1rem' }}>
-                  <ArrowWrapper clickable={false}>
-                    <ArrowDown size="16" color={theme.text2} />
-                  </ArrowWrapper>
-                  {/*<LinkStyledButton id="remove-recipient-button" onClick={() => onChangeRecipient(null)}>
-                    - Remove send
-                  </LinkStyledButton>*/}
-                </AutoRow>
-                <AddressInputPanel id="recipient" value={recipient} onChange={onChangeRecipient} />
-              </>
-            ) : null}
 
             {!showWrap && trade && (
               <Row justify={!trade ? 'center' : 'space-between'}>
@@ -565,7 +564,7 @@ export default function Swap({ history }: RouteComponentProps) {
                           {approvalState === ApprovalState.APPROVED || signatureState === UseERC20PermitState.SIGNED ? (
                             <Trans>You can now trade {currencies[Field.INPUT]?.symbol}</Trans>
                           ) : (
-                            <Trans>Allow the Uniswap Protocol to use your {currencies[Field.INPUT]?.symbol}</Trans>
+                            <Trans>RigoBlock sets allowances for {currencies[Field.INPUT]?.symbol}</Trans>
                           )}
                         </span>
                         {approvalState === ApprovalState.PENDING ? (

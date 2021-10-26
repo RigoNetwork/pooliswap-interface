@@ -7,6 +7,7 @@ import { SwapRouter, Trade as V3Trade } from '@uniswap/v3-sdk'
 import { ReactNode, useMemo } from 'react'
 
 import { AUniswap_INTERFACE } from '../constants/abis/auniswap'
+//import { AUniswapV3_INTERFACE } from '../constants/abis/auniswapv3'
 import { SWAP_ROUTER_ADDRESSES, V2_ROUTER_ADDRESS } from '../constants/addresses'
 import { TransactionType } from '../state/transactions/actions'
 import { useTransactionAdder } from '../state/transactions/hooks'
@@ -91,32 +92,26 @@ function useSwapCallArguments(
         })
       )
 
-      const uniswapMethodName = swapMethods[0].methodName
-      const argsWithEth = swapMethods[0].args
-
       if (trade.tradeType === TradeType.EXACT_INPUT) {
-        const fragment = AUniswap_INTERFACE.getFunction(uniswapMethodName)
-        const callData: string | undefined = fragment /*&& isValidMethodArgs(callInputs)*/
-          ? AUniswap_INTERFACE.encodeFunctionData(fragment, argsWithEth)
-          : undefined
-
         swapMethods.push(
-          {
-            methodName: 'operateOnExchange',
-            args: [V2_ROUTER_ADDRESS, [callData]],
-            value: '0x0',
-          }
-          /*Router.swapCallParameters(trade, {
-            feeOnTransfer: false,
+          Router.swapCallParameters(trade, {
+            feeOnTransfer: true,
             allowedSlippage,
             recipient,
             deadline: deadline.toNumber(),
           })
-            ttl: deadline
-          })*/
         )
       }
       return swapMethods.map(({ methodName, args, value }) => {
+        if (!isZero(value)) {
+          args.unshift(value)
+        }
+
+        const fragment = AUniswap_INTERFACE.getFunction(methodName)
+        const callData: string | undefined = fragment /*&& isValidMethodArgs(callInputs)*/
+          ? AUniswap_INTERFACE.encodeFunctionData(fragment, args)
+          : undefined
+
         if (argentWalletContract && trade.inputAmount.currency.isToken) {
           return {
             address: argentWalletContract.address,
@@ -136,7 +131,10 @@ function useSwapCallArguments(
           return {
             address: dragoContract.address,
             // in Uniswap V2 router and adapter have different interface (eth append)
-            calldata: AUniswap_INTERFACE.encodeFunctionData(uniswapMethodName, argsWithEth),
+            calldata: dragoContract.interface.encodeFunctionData('operateOnExchange', [
+              V2_ROUTER_ADDRESS[chainId],
+              [callData],
+            ]),
             value: '0x0',
           }
         }
@@ -152,6 +150,12 @@ function useSwapCallArguments(
         deadline: deadline.toString(),
         ...(signatureData ? null : {}),
       })
+      /*
+      let wrapData = {}
+      if (value != null) {
+        wrapData = AUniswapV3_INTERFACE.encodeFunctionData('wrapETH', [value])
+      }
+      */
       if (argentWalletContract && trade.inputAmount.currency.isToken) {
         return [
           {
@@ -173,18 +177,14 @@ function useSwapCallArguments(
       return [
         {
           address: dragoContract.address,
-          calldata: dragoContract.interface.encodeFunctionData('batchOperateOnExchange', [
+          calldata: dragoContract.interface.encodeFunctionData('operateOnExchange', [
             swapRouterAddress,
-            [
-              // TODO: wrap value in ETH
-              //wrapETH(value)
-              approveAmountCalldata(trade.maximumAmountIn(allowedSlippage), swapRouterAddress),
-              {
-                to: dragoContract.address,
-                value: '0x0',
-                data: calldata,
-              },
-            ],
+            [calldata],
+            //[
+            // wrap ETH (will not write onchain if value is 0)
+            //[wrapData],
+            //[calldata],
+            //],
           ]),
           value: '0x0',
         },

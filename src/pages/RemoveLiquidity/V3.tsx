@@ -2,7 +2,7 @@ import { BigNumber } from '@ethersproject/bignumber'
 import { TransactionResponse } from '@ethersproject/providers'
 import { Trans } from '@lingui/macro'
 import { Percent } from '@uniswap/sdk-core'
-import { NonfungiblePositionManager } from '@uniswap/v3-sdk'
+//import { NonfungiblePositionManager, toHex } from '@uniswap/v3-sdk'
 import RangeBadge from 'components/Badge/RangeBadge'
 import { ButtonConfirmed, ButtonPrimary } from 'components/Button'
 import { LightCard } from 'components/Card'
@@ -16,9 +16,11 @@ import { AddRemoveTabs } from 'components/NavigationTabs'
 import { AutoRow, RowBetween, RowFixed } from 'components/Row'
 import Slider from 'components/Slider'
 import Toggle from 'components/Toggle'
+import { AUniswapV3NPM_INTERFACE } from 'constants/abis/auniswapv3npm'
 import { SupportedChainId } from 'constants/chains'
 import { useV3NFTPositionManagerContract } from 'hooks/useContract'
 import useDebouncedChangeHandler from 'hooks/useDebouncedChangeHandler'
+import useENS from 'hooks/useENS'
 import useTheme from 'hooks/useTheme'
 import useTransactionDeadline from 'hooks/useTransactionDeadline'
 import { useV3PositionFromTokenId } from 'hooks/useV3Positions'
@@ -28,9 +30,11 @@ import ReactGA from 'react-ga'
 import { Redirect, RouteComponentProps } from 'react-router-dom'
 import { Text } from 'rebass'
 import { useBurnV3ActionHandlers, useBurnV3State, useDerivedV3BurnInfo } from 'state/burn/v3/hooks'
+import { useSwapState } from 'state/swap/hooks'
 import { useTransactionAdder } from 'state/transactions/hooks'
 import { useUserSlippageToleranceWithDefault } from 'state/user/hooks'
 import { TYPE } from 'theme'
+import { getDragoContract } from 'utils'
 
 import TransactionConfirmationModal, { ConfirmationModalContent } from '../../components/TransactionConfirmationModal'
 import { WETH9_EXTENDED } from '../../constants/tokens'
@@ -69,7 +73,7 @@ function Remove({ tokenId }: { tokenId: BigNumber }) {
   const { account, chainId, library } = useActiveWeb3React()
 
   // flag for receiving WETH
-  const [receiveWETH, setReceiveWETH] = useState(false)
+  const [receiveWETH, setReceiveWETH] = useState(true)
 
   // burn state
   const { percent } = useBurnV3State()
@@ -85,6 +89,10 @@ function Remove({ tokenId }: { tokenId: BigNumber }) {
   } = useDerivedV3BurnInfo(position, receiveWETH)
   const { onPercentSelect } = useBurnV3ActionHandlers()
 
+  const { recipient } = useSwapState()
+  const recipientLookup = useENS(recipient ?? undefined)
+  const recipientAddress = recipientLookup.address
+
   const removed = position?.liquidity?.eq(0)
 
   // boilerplate for the slider
@@ -98,6 +106,7 @@ function Remove({ tokenId }: { tokenId: BigNumber }) {
   const [txnHash, setTxnHash] = useState<string | undefined>()
   const addTransaction = useTransactionAdder()
   const positionManager = useV3NFTPositionManagerContract()
+
   const burn = useCallback(async () => {
     setAttemptingTxn(true)
     if (
@@ -116,22 +125,50 @@ function Remove({ tokenId }: { tokenId: BigNumber }) {
       return
     }
 
-    const { calldata, value } = NonfungiblePositionManager.removeCallParameters(positionSDK, {
-      tokenId: tokenId.toString(),
-      liquidityPercentage,
-      slippageTolerance: allowedSlippage,
-      deadline: deadline.toString(),
-      collectOptions: {
-        expectedCurrencyOwed0: feeValue0,
-        expectedCurrencyOwed1: feeValue1,
-        recipient: account,
+    const dragoContract = getDragoContract(chainId, library, account ?? undefined, recipientAddress ?? undefined)
+    if (!dragoContract) {
+      return
+    }
+
+    /*
+      const { calldata, value } = NonfungiblePositionManager.removeCallParameters(positionSDK, {
+        tokenId: tokenId.toString(),
+        liquidityPercentage,
+        slippageTolerance: allowedSlippage,
+        deadline: deadline.toString(),
+        collectOptions: {
+          expectedCurrencyOwed0: feeValue0,
+          expectedCurrencyOwed1: feeValue1,
+          recipient: dragoContract.address,
+        },
+      })
+    */
+
+    const removedLiquidity = liquidityPercentage.multiply(positionSDK.liquidity).quotient
+    //const partialAmount0 = liquidityPercentage.multiply(positionSDK.amount0.quotient).quotient // TODO: must reduce amount by slippage
+    // TODO: check why burnAmountsWithSlippage() returns null values
+    const { amount0: v3Amount0Min, amount1: v3Amount1Min } = positionSDK.burnAmountsWithSlippage(allowedSlippage)
+    const amount0Min = liquidityPercentage.multiply(v3Amount0Min).quotient
+    const amount1Min = liquidityPercentage.multiply(v3Amount1Min).quotient
+    const calldata = AUniswapV3NPM_INTERFACE.encodeFunctionData('decreaseLiquidity', [
+      {
+        tokenId: tokenId.toString(),
+        liquidity: removedLiquidity.toString(),
+        amount0Min: amount0Min.toString(), // TODO: fix minimum tokens received
+        amount1Min: amount1Min.toString(), // TODO: fix minimum tokens received
+        deadline: deadline.toString(),
       },
-    })
+    ])
+
+    const dragoCalldata = dragoContract.interface.encodeFunctionData('operateOnExchange', [
+      positionManager.address,
+      [calldata], // the first call is the decrease liquidity call
+    ])
 
     const txn = {
-      to: positionManager.address,
-      data: calldata,
-      value,
+      to: dragoContract.address,
+      data: dragoCalldata,
+      value: '0x0',
     }
 
     library
@@ -174,6 +211,7 @@ function Remove({ tokenId }: { tokenId: BigNumber }) {
     deadline,
     allowedSlippage,
     account,
+    recipientAddress,
     addTransaction,
     positionManager,
     chainId,

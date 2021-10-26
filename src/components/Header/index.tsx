@@ -99,7 +99,7 @@ const HeaderLinks = styled(Row)`
   overflow: auto;
   align-items: center;
   ${({ theme }) => theme.mediaWidth.upToLarge`
-    justify-self: start;  
+    justify-self: start;
     `};
   ${({ theme }) => theme.mediaWidth.upToMedium`
     justify-self: center;
@@ -139,7 +139,7 @@ const UNIAmount = styled(AccountElement)`
   height: 36px;
   font-weight: 500;
   background-color: ${({ theme }) => theme.bg3};
-  background: radial-gradient(174.47% 188.91% at 1.84% 0%, #ff007a 0%, #2172e5 100%), #edeef2;
+  background: radial-gradient(174.47% 188.91% at 1.84% 0%, #ffae00 0%, #2172e5 100%), #edeef2;
 `
 
 const UNIWrapper = styled.span`
@@ -295,11 +295,13 @@ export default function Header() {
         >
           <Trans>Pool</Trans>
         </StyledNavLink>
+        {/*
         {(!chainId || chainId === SupportedChainId.MAINNET) && (
           <StyledNavLink id={`vote-nav-link`} to={'/vote'}>
             <Trans>Vote</Trans>
           </StyledNavLink>
         )}
+        */}
         <StyledExternalLink id={`charts-nav-link`} href={infoLink}>
           <Trans>Charts</Trans>
           <sup>↗</sup>

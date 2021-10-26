@@ -13,9 +13,10 @@ import { useIsUserAddedToken } from '../../hooks/Tokens'
 import { useActiveWeb3React } from '../../hooks/web3'
 import { useCombinedActiveList } from '../../state/lists/hooks'
 import { WrappedTokenInfo } from '../../state/lists/wrappedTokenInfo'
+import { useSwapState } from '../../state/swap/hooks'
 import { useCurrencyBalance } from '../../state/wallet/hooks'
 import { TYPE } from '../../theme'
-import { isTokenOnList } from '../../utils'
+import { isAddress, isTokenOnList } from '../../utils'
 import Column from '../Column'
 import CurrencyLogo from '../CurrencyLogo'
 import Loader from '../Loader'
@@ -119,7 +120,9 @@ function CurrencyRow({
   const selectedTokenList = useCombinedActiveList()
   const isOnSelectedList = isTokenOnList(selectedTokenList, currency.isToken ? currency : undefined)
   const customAdded = useIsUserAddedToken(currency)
-  const balance = useCurrencyBalance(account ?? undefined, currency)
+  const { recipient } = useSwapState()
+  const dragoAddress = isAddress(recipient) ? recipient : undefined
+  const balance = useCurrencyBalance(dragoAddress ?? undefined, currency)
 
   // only show add or remove buttons if not on selected list
   return (

@@ -4,6 +4,7 @@ import {
   Field,
   resetMintState,
   setFullRange,
+  setRecipient,
   typeInput,
   typeLeftRangeInput,
   typeRightRangeInput,
@@ -16,6 +17,7 @@ interface MintState {
   readonly independentField: Field
   readonly typedValue: string
   readonly startPriceTypedValue: string // for the case when there's no liquidity
+  readonly recipient: string | null
   readonly leftRangeTypedValue: string | FullRange
   readonly rightRangeTypedValue: string | FullRange
 }
@@ -24,6 +26,7 @@ const initialState: MintState = {
   independentField: Field.CURRENCY_A,
   typedValue: '',
   startPriceTypedValue: '',
+  recipient: '',
   leftRangeTypedValue: '',
   rightRangeTypedValue: '',
 }
@@ -81,5 +84,8 @@ export default createReducer<MintState>(initialState, (builder) =>
           typedValue,
         }
       }
+    })
+    .addCase(setRecipient, (state, { payload: { recipient } }) => {
+      state.recipient = recipient
     })
 )

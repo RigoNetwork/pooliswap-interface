@@ -1,20 +1,24 @@
 import { Trans } from '@lingui/macro'
-import { ButtonGray, ButtonOutlined, ButtonPrimary } from 'components/Button'
+import AddressInputPanel from 'components/AddressInputPanel'
+import { ButtonGray /*, ButtonOutlined*/, ButtonPrimary } from 'components/Button'
 import { AutoColumn } from 'components/Column'
 import DowntimeWarning from 'components/DowntimeWarning'
 import { FlyoutAlignment, NewMenu } from 'components/Menu'
 import { SwapPoolTabs } from 'components/NavigationTabs'
 import { NetworkAlert } from 'components/NetworkAlert/NetworkAlert'
 import PositionList from 'components/PositionList'
-import { RowBetween, RowFixed } from 'components/Row'
+import { AutoRow, RowBetween, RowFixed } from 'components/Row'
+import { ArrowWrapper } from 'components/swap/styleds'
 import { SwitchLocaleLink } from 'components/SwitchLocaleLink'
 import { L2_CHAIN_IDS } from 'constants/chains'
+import useENS from 'hooks/useENS'
 import { useV3Positions } from 'hooks/useV3Positions'
 import { useActiveWeb3React } from 'hooks/web3'
 import { useContext } from 'react'
-import { BookOpen, ChevronDown, ChevronsRight, Inbox, Layers, PlusCircle } from 'react-feather'
+import { ArrowDown, BookOpen, ChevronDown, /*ChevronsRight,*/ Inbox /*, Layers, PlusCircle*/ } from 'react-feather'
 import { Link } from 'react-router-dom'
 import { useWalletModalToggle } from 'state/application/hooks'
+import { useSwapActionHandlers, useSwapState } from 'state/swap/hooks'
 import { useUserHideClosedPositions } from 'state/user/hooks'
 import styled, { ThemeContext } from 'styled-components/macro'
 import { HideSmall, TYPE } from 'theme'
@@ -109,6 +113,7 @@ const MainContentWrapper = styled.main`
   flex-direction: column;
 `
 
+/*
 const ShowInactiveToggle = styled.div`
   display: flex;
   align-items: center;
@@ -127,15 +132,23 @@ const ResponsiveRow = styled(RowFixed)`
     flex-direction: column-reverse;
   `};
 `
+*/
 
 export default function Pool() {
   const { account, chainId } = useActiveWeb3React()
+  const { recipient } = useSwapState()
+  const { onChangeRecipient } = useSwapActionHandlers()
   const toggleWalletModal = useWalletModalToggle()
 
   const theme = useContext(ThemeContext)
-  const [userHideClosedPositions, setUserHideClosedPositions] = useUserHideClosedPositions()
+  const [userHideClosedPositions /*, setUserHideClosedPositions*/] = useUserHideClosedPositions()
 
-  const { positions, loading: positionsLoading } = useV3Positions(account)
+  // find drago contract
+  const recipientLookup = useENS(recipient ?? undefined)
+  const recipientAddress = recipientLookup.address
+
+  // TODO: useV3Positions(dragoAddress)
+  const { positions, loading: positionsLoading } = useV3Positions(recipientAddress)
 
   const [openPositions, closedPositions] = positions?.reduce<[PositionDetails[], PositionDetails[]]>(
     (acc, p) => {
@@ -150,6 +163,7 @@ export default function Pool() {
   const showV2Features = !!chainId && !L2_CHAIN_IDS.includes(chainId)
 
   const menuItems = [
+    /*
     {
       content: (
         <MenuItem>
@@ -180,6 +194,7 @@ export default function Pool() {
       link: '/pool/v2',
       external: false,
     },
+    */
     {
       content: (
         <MenuItem>
@@ -230,6 +245,16 @@ export default function Pool() {
             </HideSmall>
 
             <MainContentWrapper>
+              {recipient !== null ? (
+                <>
+                  <AddressInputPanel id="recipient" value={recipient} onChange={onChangeRecipient} />
+                  <AutoRow justify="space-between" style={{ padding: '0 1rem' }}>
+                    <ArrowWrapper clickable={false}>
+                      <ArrowDown size="16" color={theme.text2} />
+                    </ArrowWrapper>
+                  </AutoRow>
+                </>
+              ) : null}
               {positionsLoading ? (
                 <LoadingRows>
                   <div />
@@ -264,6 +289,7 @@ export default function Pool() {
               )}
             </MainContentWrapper>
 
+            {/*
             <ResponsiveRow>
               {showV2Features && (
                 <RowFixed>
@@ -318,6 +344,7 @@ export default function Pool() {
                 </ShowInactiveToggle>
               ) : null}
             </ResponsiveRow>
+*/}
           </AutoColumn>
         </AutoColumn>
       </PageWrapper>
