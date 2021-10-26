@@ -442,8 +442,16 @@ export function useV3DerivedMintInfo(
     errorMessage = <Trans>Connect Wallet</Trans>
   }
 
+  if (!dragoAddress) {
+    errorMessage = <Trans>Enter your Drago address</Trans>
+  }
+
   if (poolState === PoolState.INVALID) {
     errorMessage = errorMessage ?? <Trans>Invalid pair</Trans>
+  }
+
+  if (currencyA?.isNative || currencyB?.isNative) {
+    errorMessage = errorMessage ?? <Trans>Use WETH instead</Trans>
   }
 
   if (invalidPrice) {

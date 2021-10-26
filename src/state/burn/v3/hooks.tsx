@@ -19,7 +19,7 @@ export function useBurnV3State(): AppState['burnV3'] {
 
 export function useDerivedV3BurnInfo(
   position?: PositionDetails,
-  asWETH = false
+  asWETH = true
 ): {
   position?: Position
   liquidityPercentage?: Percent

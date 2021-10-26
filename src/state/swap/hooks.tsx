@@ -4,6 +4,7 @@ import { Currency, CurrencyAmount, Percent, TradeType } from '@uniswap/sdk-core'
 import { Trade as V2Trade } from '@uniswap/v2-sdk'
 import { Trade as V3Trade } from '@uniswap/v3-sdk'
 import { TWO_PERCENT } from 'constants/misc'
+//import { WETH9_EXTENDED } from 'constants/tokens'
 import { useBestV2Trade } from 'hooks/useBestV2Trade'
 import { useBestV3Trade } from 'hooks/useBestV3Trade'
 import JSBI from 'jsbi'
@@ -210,6 +211,10 @@ export function useDerivedSwapInfo(toggledVersion: Version | undefined): {
     inputError = inputError ?? <Trans>Select a token</Trans>
   }
 
+  if (inputCurrency?.isNative || outputCurrency?.isNative) {
+    inputError = inputError ?? <Trans>Use WETH instead</Trans>
+  }
+
   const formattedTo = isAddress(to)
   if (!to || !formattedTo) {
     inputError = inputError ?? <Trans>Enter your Drago address</Trans>
@@ -275,6 +280,7 @@ export function queryParametersToSwapState(parsedQs: ParsedQs): SwapState {
   let outputCurrency = parseCurrencyFromURLParameter(parsedQs.outputCurrency)
   if (inputCurrency === '' && outputCurrency === '') {
     // default to ETH input
+    // change to inputCurrency = '' to prevent ETH initialization
     inputCurrency = 'ETH'
   } else if (inputCurrency === outputCurrency) {
     // clear output if identical
