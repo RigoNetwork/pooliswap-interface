@@ -202,8 +202,7 @@ export default function CurrencyInputPanel({
   const [modalOpen, setModalOpen] = useState(false)
   const { account } = useActiveWeb3React()
   const { recipient } = useSwapState()
-  const mockEmptyAddress = '0x9999999999999999999999999999999999999998'
-  const dragoAddress = isAddress(recipient) ? recipient : mockEmptyAddress
+  const dragoAddress = isAddress(recipient) ? recipient : undefined
   const selectedCurrencyBalance = useCurrencyBalance(dragoAddress ?? undefined, currency ?? undefined)
   const theme = useTheme()
 
