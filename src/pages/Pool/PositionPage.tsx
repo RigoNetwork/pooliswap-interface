@@ -15,6 +15,7 @@ import { Dots } from 'components/swap/styleds'
 import Toggle from 'components/Toggle'
 import TransactionConfirmationModal, { ConfirmationModalContent } from 'components/TransactionConfirmationModal'
 import { SupportedChainId } from 'constants/chains'
+import { WETH9_EXTENDED } from 'constants/tokens'
 import { useToken } from 'hooks/Tokens'
 import { useV3NFTPositionManagerContract } from 'hooks/useContract'
 import useENS from 'hooks/useENS'
@@ -348,8 +349,8 @@ export function PositionPage({
 
   const metadata = usePositionTokenURI(parsedTokenId)
 
-  const currency0 = token0 ? unwrappedToken(token0) : undefined
-  const currency1 = token1 ? unwrappedToken(token1) : undefined
+  let currency0 = token0 ? unwrappedToken(token0) : undefined
+  let currency1 = token1 ? unwrappedToken(token1) : undefined
 
   // flag for receiving WETH
   const [receiveWETH, setReceiveWETH] = useState(true)
@@ -553,6 +554,16 @@ export function PositionPage({
       !collectMigrationHash &&
       !onOptimisticChain
   )
+
+  // ensure we use WETH instead of ETH when increasing position
+  if (chainId && currency0 && currency1) {
+    if (currency0.isNative) {
+      currency0 = WETH9_EXTENDED[chainId]
+    }
+    if (currency1.isNative) {
+      currency1 = WETH9_EXTENDED[chainId]
+    }
+  }
 
   return loading || poolState === PoolState.LOADING || !feeAmount ? (
     <LoadingRows>
