@@ -1,11 +1,9 @@
-import React, { useEffect, useRef } from 'react'
+import Davatar from '@davatar/react'
+import styled from 'styled-components/macro'
 
-import styled from 'styled-components'
+import { useActiveWeb3React } from '../../hooks/web3'
 
-import { useActiveWeb3React } from '../../hooks'
-import Jazzicon from 'jazzicon'
-
-const StyledIdenticon = styled.div`
+const StyledIdenticonContainer = styled.div`
   height: 1rem;
   width: 1rem;
   border-radius: 1.125rem;
@@ -13,16 +11,12 @@ const StyledIdenticon = styled.div`
 `
 
 export default function Identicon() {
-  const ref = useRef<HTMLDivElement>()
+  const { account, library } = useActiveWeb3React()
 
-  const { account } = useActiveWeb3React()
-
-  useEffect(() => {
-    if (account && ref.current) {
-      ref.current.innerHTML = ''
-      ref.current.appendChild(Jazzicon(16, parseInt(account.slice(2, 10), 16)))
-    }
-  }, [account])
-
-  return <StyledIdenticon ref={ref} />
+  // https://github.com/DefinitelyTyped/DefinitelyTyped/issues/30451
+  return (
+    <StyledIdenticonContainer>
+      {account && library?.provider && <Davatar address={account} size={16} provider={library.provider} />}
+    </StyledIdenticonContainer>
+  )
 }

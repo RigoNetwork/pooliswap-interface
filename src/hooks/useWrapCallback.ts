@@ -1,17 +1,24 @@
-import { Currency, currencyEquals, ETHER, WETH } from '@uniswap/sdk'
+import { Currency } from '@uniswap/sdk-core'
 import { useMemo } from 'react'
+
+import { AUniswapV3_INTERFACE } from '../constants/abis/auniswapv3'
+import { AWETH_INTERFACE } from '../constants/abis/aweth'
+import { SWAP_ROUTER_ADDRESSES } from '../constants/addresses'
+import { WETH9_EXTENDED } from '../constants/tokens'
+import useENS from '../hooks/useENS'
 import { tryParseAmount } from '../state/swap/hooks'
+import { useSwapState } from '../state/swap/hooks'
+import { TransactionType } from '../state/transactions/actions'
 import { useTransactionAdder } from '../state/transactions/hooks'
 import { useCurrencyBalance } from '../state/wallet/hooks'
-import { useActiveWeb3React } from './index'
+import { getDragoContract } from '../utils'
 import { useWETHContract } from './useContract'
-import { useSwapState } from '../state/swap/hooks'
-import useENS from '../hooks/useENS'
+import { useActiveWeb3React } from './web3'
 
 export enum WrapType {
   NOT_APPLICABLE,
   WRAP,
-  UNWRAP
+  UNWRAP,
 }
 
 const NOT_APPLICABLE = { wrapType: WrapType.NOT_APPLICABLE }
@@ -22,11 +29,11 @@ const NOT_APPLICABLE = { wrapType: WrapType.NOT_APPLICABLE }
  * @param typedValue the user input value
  */
 export default function useWrapCallback(
-  inputCurrency: Currency | undefined,
-  outputCurrency: Currency | undefined,
+  inputCurrency: Currency | undefined | null,
+  outputCurrency: Currency | undefined | null,
   typedValue: string | undefined
 ): { wrapType: WrapType; execute?: undefined | (() => Promise<void>); inputError?: string } {
-  const { chainId } = useActiveWeb3React()
+  const { account, chainId, library } = useActiveWeb3React()
   const wethContract = useWETHContract()
 
   // recipientLookup is drago address
@@ -34,50 +41,87 @@ export default function useWrapCallback(
   const recipientLookup = useENS(recipient ?? undefined)
   const dragoAddress = recipientLookup.address
 
-  const balance = useCurrencyBalance(dragoAddress ?? undefined, inputCurrency)
+  const balance = useCurrencyBalance(dragoAddress ?? undefined, inputCurrency ?? undefined)
+
   // we can always parse the amount typed as the input currency, since wrapping is 1:1
-  const inputAmount = useMemo(() => tryParseAmount(typedValue, inputCurrency), [inputCurrency, typedValue])
+  const inputAmount = useMemo(() => tryParseAmount(typedValue, inputCurrency ?? undefined), [inputCurrency, typedValue])
   const addTransaction = useTransactionAdder()
 
   return useMemo(() => {
-    if (!wethContract || !chainId || !inputCurrency || !outputCurrency) return NOT_APPLICABLE
+    if (!wethContract || !chainId || !library || !account || !recipient || !inputCurrency || !outputCurrency)
+      return NOT_APPLICABLE
+    const weth = WETH9_EXTENDED[chainId]
+    if (!weth) return NOT_APPLICABLE
 
+    const dragoContract = getDragoContract(chainId, library, account ?? undefined, dragoAddress ?? undefined)
+    if (!dragoContract) {
+      return NOT_APPLICABLE
+    }
+
+    const hasInputAmount = Boolean(inputAmount?.greaterThan('0'))
     const sufficientBalance = inputAmount && balance && !balance.lessThan(inputAmount)
 
-    if (inputCurrency === ETHER && currencyEquals(WETH[chainId], outputCurrency)) {
+    if (inputCurrency.isNative && weth.equals(outputCurrency)) {
       return {
         wrapType: WrapType.WRAP,
         execute:
           sufficientBalance && inputAmount
             ? async () => {
                 try {
-                  const txReceipt = await wethContract.deposit({ value: `0x${inputAmount.raw.toString(16)}` })
-                  addTransaction(txReceipt, { summary: `Wrap ${inputAmount.toSignificant(6)} ETH to WETH` })
+                  const calldata = AUniswapV3_INTERFACE.encodeFunctionData('wrapETH', [inputAmount.quotient.toString()])
+                  const txReceipt = await dragoContract.operateOnExchange(SWAP_ROUTER_ADDRESSES[chainId], [calldata])
+                  //const txReceipt = await wethContract.deposit({ value: `0x${inputAmount.quotient.toString(16)}` })
+                  addTransaction(txReceipt, {
+                    type: TransactionType.WRAP,
+                    unwrapped: false,
+                    currencyAmountRaw: inputAmount?.quotient.toString(),
+                  })
                 } catch (error) {
                   console.error('Could not deposit', error)
                 }
               }
             : undefined,
-        inputError: sufficientBalance ? undefined : 'Insufficient ETH balance'
+        inputError: sufficientBalance ? undefined : hasInputAmount ? 'Insufficient ETH balance' : 'Enter ETH amount',
       }
-    } else if (currencyEquals(WETH[chainId], inputCurrency) && outputCurrency === ETHER) {
+    } else if (weth.equals(inputCurrency) && outputCurrency.isNative) {
       return {
         wrapType: WrapType.UNWRAP,
         execute:
           sufficientBalance && inputAmount
             ? async () => {
                 try {
-                  const txReceipt = await wethContract.withdraw(`0x${inputAmount.raw.toString(16)}`)
-                  addTransaction(txReceipt, { summary: `Unwrap ${inputAmount.toSignificant(6)} WETH to ETH` })
+                  const calldata = AWETH_INTERFACE.encodeFunctionData('unwrapEth', [
+                    wethContract.address,
+                    inputAmount.quotient.toString(),
+                  ])
+                  const txReceipt = await dragoContract.operateOnExchange(wethContract.address, [calldata])
+                  //const txReceipt = await wethContract.withdraw(`0x${inputAmount.quotient.toString(16)}`)
+                  addTransaction(txReceipt, {
+                    type: TransactionType.WRAP,
+                    unwrapped: true,
+                    currencyAmountRaw: inputAmount?.quotient.toString(),
+                  })
                 } catch (error) {
                   console.error('Could not withdraw', error)
                 }
               }
             : undefined,
-        inputError: sufficientBalance ? undefined : 'Insufficient WETH balance'
+        inputError: sufficientBalance ? undefined : hasInputAmount ? 'Insufficient WETH balance' : 'Enter WETH amount',
       }
     } else {
       return NOT_APPLICABLE
     }
-  }, [wethContract, chainId, inputCurrency, outputCurrency, inputAmount, balance, addTransaction])
+  }, [
+    wethContract,
+    chainId,
+    library,
+    account,
+    recipient,
+    dragoAddress,
+    inputCurrency,
+    outputCurrency,
+    inputAmount,
+    balance,
+    addTransaction,
+  ])
 }

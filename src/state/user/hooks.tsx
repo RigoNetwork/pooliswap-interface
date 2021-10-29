@@ -1,26 +1,34 @@
-import { ChainId, Pair, Token, Currency } from '@uniswap/sdk'
-import flatMap from 'lodash.flatmap'
+import { Percent, Token } from '@uniswap/sdk-core'
+import { computePairAddress, Pair } from '@uniswap/v2-sdk'
+import { L2_CHAIN_IDS, SupportedChainId } from 'constants/chains'
+import { SupportedLocale } from 'constants/locales'
+import { L2_DEADLINE_FROM_NOW } from 'constants/misc'
+import JSBI from 'jsbi'
 import { useCallback, useMemo } from 'react'
-import { shallowEqual, useDispatch, useSelector } from 'react-redux'
-import { BASES_TO_TRACK_LIQUIDITY_FOR, PINNED_PAIRS } from '../../constants'
+import { shallowEqual } from 'react-redux'
+import { useAppDispatch, useAppSelector } from 'state/hooks'
 
-import { useActiveWeb3React } from '../../hooks'
+import { V2_FACTORY_ADDRESSES } from '../../constants/addresses'
+import { BASES_TO_TRACK_LIQUIDITY_FOR, PINNED_PAIRS } from '../../constants/routing'
 import { useAllTokens } from '../../hooks/Tokens'
-import { AppDispatch, AppState } from '../index'
+import { useActiveWeb3React } from '../../hooks/web3'
+import { AppState } from '../index'
 import {
   addSerializedPair,
   addSerializedToken,
-  dismissTokenWarning,
   removeSerializedToken,
   SerializedPair,
   SerializedToken,
+  updateArbitrumAlphaAcknowledged,
+  updateHideClosedPositions,
+  updateOptimismAlphaAcknowledged,
+  updateUserClientSideRouter,
   updateUserDarkMode,
   updateUserDeadline,
   updateUserExpertMode,
-  updateUserSlippageTolerance
+  updateUserLocale,
+  updateUserSlippageTolerance,
 } from './actions'
-import { useDefaultTokenList } from '../lists/hooks'
-import { isDefaultToken } from '../../utils'
 
 function serializeToken(token: Token): SerializedToken {
   return {
@@ -28,7 +36,7 @@ function serializeToken(token: Token): SerializedToken {
     address: token.address,
     decimals: token.decimals,
     symbol: token.symbol,
-    name: token.name
+    name: token.name,
   }
 }
 
@@ -43,13 +51,10 @@ function deserializeToken(serializedToken: SerializedToken): Token {
 }
 
 export function useIsDarkMode(): boolean {
-  const { userDarkMode, matchesDarkMode } = useSelector<
-    AppState,
-    { userDarkMode: boolean | null; matchesDarkMode: boolean }
-  >(
+  const { userDarkMode, matchesDarkMode } = useAppSelector(
     ({ user: { matchesDarkMode, userDarkMode } }) => ({
       userDarkMode,
-      matchesDarkMode
+      matchesDarkMode,
     }),
     shallowEqual
   )
@@ -58,7 +63,7 @@ export function useIsDarkMode(): boolean {
 }
 
 export function useDarkModeManager(): [boolean, () => void] {
-  const dispatch = useDispatch<AppDispatch>()
+  const dispatch = useAppDispatch()
   const darkMode = useIsDarkMode()
 
   const toggleSetDarkMode = useCallback(() => {
@@ -68,12 +73,30 @@ export function useDarkModeManager(): [boolean, () => void] {
   return [darkMode, toggleSetDarkMode]
 }
 
+export function useUserLocale(): SupportedLocale | null {
+  return useAppSelector((state) => state.user.userLocale)
+}
+
+export function useUserLocaleManager(): [SupportedLocale | null, (newLocale: SupportedLocale) => void] {
+  const dispatch = useAppDispatch()
+  const locale = useUserLocale()
+
+  const setLocale = useCallback(
+    (newLocale: SupportedLocale) => {
+      dispatch(updateUserLocale({ userLocale: newLocale }))
+    },
+    [dispatch]
+  )
+
+  return [locale, setLocale]
+}
+
 export function useIsExpertMode(): boolean {
-  return useSelector<AppState, AppState['user']['userExpertMode']>(state => state.user.userExpertMode)
+  return useAppSelector((state) => state.user.userExpertMode)
 }
 
 export function useExpertModeManager(): [boolean, () => void] {
-  const dispatch = useDispatch<AppDispatch>()
+  const dispatch = useAppDispatch()
   const expertMode = useIsExpertMode()
 
   const toggleSetExpertMode = useCallback(() => {
@@ -83,27 +106,97 @@ export function useExpertModeManager(): [boolean, () => void] {
   return [expertMode, toggleSetExpertMode]
 }
 
-export function useUserSlippageTolerance(): [number, (slippage: number) => void] {
-  const dispatch = useDispatch<AppDispatch>()
-  const userSlippageTolerance = useSelector<AppState, AppState['user']['userSlippageTolerance']>(state => {
-    return state.user.userSlippageTolerance
-  })
+export function useClientSideRouter(): [boolean, (userClientSideRouter: boolean) => void] {
+  const dispatch = useAppDispatch()
 
-  const setUserSlippageTolerance = useCallback(
-    (userSlippageTolerance: number) => {
-      dispatch(updateUserSlippageTolerance({ userSlippageTolerance }))
+  const clientSideRouter = useAppSelector((state) => Boolean(state.user.userClientSideRouter))
+
+  const setClientSideRouter = useCallback(
+    (newClientSideRouter: boolean) => {
+      dispatch(updateUserClientSideRouter({ userClientSideRouter: newClientSideRouter }))
     },
     [dispatch]
   )
 
-  return [userSlippageTolerance, setUserSlippageTolerance]
+  return [clientSideRouter, setClientSideRouter]
 }
 
-export function useUserDeadline(): [number, (slippage: number) => void] {
-  const dispatch = useDispatch<AppDispatch>()
-  const userDeadline = useSelector<AppState, AppState['user']['userDeadline']>(state => {
-    return state.user.userDeadline
+export function useRoutingAPIEnabled(): boolean {
+  const { chainId } = useActiveWeb3React()
+  const [clientSideRouter] = useClientSideRouter()
+
+  return chainId === SupportedChainId.MAINNET && !clientSideRouter
+}
+
+export function useSetUserSlippageTolerance(): (slippageTolerance: Percent | 'auto') => void {
+  const dispatch = useAppDispatch()
+
+  return useCallback(
+    (userSlippageTolerance: Percent | 'auto') => {
+      let value: 'auto' | number
+      try {
+        value =
+          userSlippageTolerance === 'auto' ? 'auto' : JSBI.toNumber(userSlippageTolerance.multiply(10_000).quotient)
+      } catch (error) {
+        value = 'auto'
+      }
+      dispatch(
+        updateUserSlippageTolerance({
+          userSlippageTolerance: value,
+        })
+      )
+    },
+    [dispatch]
+  )
+}
+
+/**
+ * Return the user's slippage tolerance, from the redux store, and a function to update the slippage tolerance
+ */
+export function useUserSlippageTolerance(): Percent | 'auto' {
+  const userSlippageTolerance = useAppSelector((state) => {
+    return state.user.userSlippageTolerance
   })
+
+  return useMemo(
+    () => (userSlippageTolerance === 'auto' ? 'auto' : new Percent(userSlippageTolerance, 10_000)),
+    [userSlippageTolerance]
+  )
+}
+
+export function useUserHideClosedPositions(): [boolean, (newHideClosedPositions: boolean) => void] {
+  const dispatch = useAppDispatch()
+
+  const hideClosedPositions = useAppSelector((state) => state.user.userHideClosedPositions)
+
+  const setHideClosedPositions = useCallback(
+    (newHideClosedPositions: boolean) => {
+      dispatch(updateHideClosedPositions({ userHideClosedPositions: newHideClosedPositions }))
+    },
+    [dispatch]
+  )
+
+  return [hideClosedPositions, setHideClosedPositions]
+}
+
+/**
+ * Same as above but replaces the auto with a default value
+ * @param defaultSlippageTolerance the default value to replace auto with
+ */
+export function useUserSlippageToleranceWithDefault(defaultSlippageTolerance: Percent): Percent {
+  const allowedSlippage = useUserSlippageTolerance()
+  return useMemo(
+    () => (allowedSlippage === 'auto' ? defaultSlippageTolerance : allowedSlippage),
+    [allowedSlippage, defaultSlippageTolerance]
+  )
+}
+
+export function useUserTransactionTTL(): [number, (slippage: number) => void] {
+  const { chainId } = useActiveWeb3React()
+  const dispatch = useAppDispatch()
+  const userDeadline = useAppSelector((state) => state.user.userDeadline)
+  const onL2 = Boolean(chainId && L2_CHAIN_IDS.includes(chainId))
+  const deadline = onL2 ? L2_DEADLINE_FROM_NOW : userDeadline
 
   const setUserDeadline = useCallback(
     (userDeadline: number) => {
@@ -112,11 +205,11 @@ export function useUserDeadline(): [number, (slippage: number) => void] {
     [dispatch]
   )
 
-  return [userDeadline, setUserDeadline]
+  return [deadline, setUserDeadline]
 }
 
 export function useAddUserToken(): (token: Token) => void {
-  const dispatch = useDispatch<AppDispatch>()
+  const dispatch = useAppDispatch()
   return useCallback(
     (token: Token) => {
       dispatch(addSerializedToken({ serializedToken: serializeToken(token) }))
@@ -126,7 +219,7 @@ export function useAddUserToken(): (token: Token) => void {
 }
 
 export function useRemoveUserAddedToken(): (chainId: number, address: string) => void {
-  const dispatch = useDispatch<AppDispatch>()
+  const dispatch = useAppDispatch()
   return useCallback(
     (chainId: number, address: string) => {
       dispatch(removeSerializedToken({ chainId, address }))
@@ -137,23 +230,23 @@ export function useRemoveUserAddedToken(): (chainId: number, address: string) =>
 
 export function useUserAddedTokens(): Token[] {
   const { chainId } = useActiveWeb3React()
-  const serializedTokensMap = useSelector<AppState, AppState['user']['tokens']>(({ user: { tokens } }) => tokens)
+  const serializedTokensMap = useAppSelector(({ user: { tokens } }) => tokens)
 
   return useMemo(() => {
     if (!chainId) return []
-    return Object.values(serializedTokensMap[chainId as ChainId] ?? {}).map(deserializeToken)
+    return Object.values(serializedTokensMap?.[chainId] ?? {}).map(deserializeToken)
   }, [serializedTokensMap, chainId])
 }
 
 function serializePair(pair: Pair): SerializedPair {
   return {
     token0: serializeToken(pair.token0),
-    token1: serializeToken(pair.token1)
+    token1: serializeToken(pair.token1),
   }
 }
 
 export function usePairAdder(): (pair: Pair) => void {
-  const dispatch = useDispatch<AppDispatch>()
+  const dispatch = useAppDispatch()
 
   return useCallback(
     (pair: Pair) => {
@@ -163,34 +256,8 @@ export function usePairAdder(): (pair: Pair) => void {
   )
 }
 
-/**
- * Returns whether a token warning has been dismissed and a callback to dismiss it,
- * iff it has not already been dismissed and is a valid token.
- */
-export function useTokenWarningDismissal(chainId?: number, token?: Currency): [boolean, null | (() => void)] {
-  const dismissalState = useSelector<AppState, AppState['user']['dismissedTokenWarnings']>(
-    state => state.user.dismissedTokenWarnings
-  )
-
-  const dispatch = useDispatch<AppDispatch>()
-
-  // get default list, mark as dismissed if on list
-  const defaultList = useDefaultTokenList()
-  const isDefault = isDefaultToken(defaultList, token)
-
-  return useMemo(() => {
-    if (!chainId || !token) return [false, null]
-
-    const dismissed: boolean =
-      token instanceof Token ? dismissalState?.[chainId]?.[token.address] === true || isDefault : true
-
-    const callback =
-      dismissed || !(token instanceof Token)
-        ? null
-        : () => dispatch(dismissTokenWarning({ chainId, tokenAddress: token.address }))
-
-    return [dismissed, callback]
-  }, [chainId, token, dismissalState, isDefault, dispatch])
+export function useURLWarningVisible(): boolean {
+  return useAppSelector((state: AppState) => state.user.URLWarningVisible)
 }
 
 /**
@@ -199,7 +266,17 @@ export function useTokenWarningDismissal(chainId?: number, token?: Currency): [b
  * @param tokenB the other token
  */
 export function toV2LiquidityToken([tokenA, tokenB]: [Token, Token]): Token {
-  return new Token(tokenA.chainId, Pair.getAddress(tokenA, tokenB), 18, 'UNI-V2', 'Uniswap V2')
+  if (tokenA.chainId !== tokenB.chainId) throw new Error('Not matching chain IDs')
+  if (tokenA.equals(tokenB)) throw new Error('Tokens cannot be equal')
+  if (!V2_FACTORY_ADDRESSES[tokenA.chainId]) throw new Error('No V2 factory address on this chain')
+
+  return new Token(
+    tokenA.chainId,
+    computePairAddress({ factoryAddress: V2_FACTORY_ADDRESSES[tokenA.chainId], tokenA, tokenB }),
+    18,
+    'UNI-V2',
+    'Uniswap V2'
+  )
 }
 
 /**
@@ -216,14 +293,14 @@ export function useTrackedTokenPairs(): [Token, Token][] {
   const generatedPairs: [Token, Token][] = useMemo(
     () =>
       chainId
-        ? flatMap(Object.keys(tokens), tokenAddress => {
+        ? Object.keys(tokens).flatMap((tokenAddress) => {
             const token = tokens[tokenAddress]
             // for each token on the current chain,
             return (
               // loop though all bases on the current chain
               (BASES_TO_TRACK_LIQUIDITY_FOR[chainId] ?? [])
                 // to construct pairs of the given token with each base
-                .map(base => {
+                .map((base) => {
                   if (base.address === token.address) {
                     return null
                   } else {
@@ -238,23 +315,22 @@ export function useTrackedTokenPairs(): [Token, Token][] {
   )
 
   // pairs saved by users
-  const savedSerializedPairs = useSelector<AppState, AppState['user']['pairs']>(({ user: { pairs } }) => pairs)
+  const savedSerializedPairs = useAppSelector(({ user: { pairs } }) => pairs)
 
   const userPairs: [Token, Token][] = useMemo(() => {
     if (!chainId || !savedSerializedPairs) return []
     const forChain = savedSerializedPairs[chainId]
     if (!forChain) return []
 
-    return Object.keys(forChain).map(pairId => {
+    return Object.keys(forChain).map((pairId) => {
       return [deserializeToken(forChain[pairId].token0), deserializeToken(forChain[pairId].token1)]
     })
   }, [savedSerializedPairs, chainId])
 
-  const combinedList = useMemo(() => userPairs.concat(generatedPairs).concat(pinnedPairs), [
-    generatedPairs,
-    pinnedPairs,
-    userPairs
-  ])
+  const combinedList = useMemo(
+    () => userPairs.concat(generatedPairs).concat(pinnedPairs),
+    [generatedPairs, pinnedPairs, userPairs]
+  )
 
   return useMemo(() => {
     // dedupes pairs of tokens in the combined list
@@ -266,6 +342,26 @@ export function useTrackedTokenPairs(): [Token, Token][] {
       return memo
     }, {})
 
-    return Object.keys(keyed).map(key => keyed[key])
+    return Object.keys(keyed).map((key) => keyed[key])
   }, [combinedList])
+}
+
+export function useArbitrumAlphaAlert(): [boolean, (arbitrumAlphaAcknowledged: boolean) => void] {
+  const dispatch = useAppDispatch()
+  const arbitrumAlphaAcknowledged = useAppSelector(({ user }) => user.arbitrumAlphaAcknowledged)
+  const setArbitrumAlphaAcknowledged = (arbitrumAlphaAcknowledged: boolean) => {
+    dispatch(updateArbitrumAlphaAcknowledged({ arbitrumAlphaAcknowledged }))
+  }
+
+  return [arbitrumAlphaAcknowledged, setArbitrumAlphaAcknowledged]
+}
+
+export function useOptimismAlphaAlert(): [boolean, (optimismAlphaAcknowledged: boolean) => void] {
+  const dispatch = useAppDispatch()
+  const optimismAlphaAcknowledged = useAppSelector(({ user }) => user.optimismAlphaAcknowledged)
+  const setOptimismAlphaAcknowledged = (optimismAlphaAcknowledged: boolean) => {
+    dispatch(updateOptimismAlphaAcknowledged({ optimismAlphaAcknowledged }))
+  }
+
+  return [optimismAlphaAcknowledged, setOptimismAlphaAcknowledged]
 }

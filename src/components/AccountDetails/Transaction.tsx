@@ -1,15 +1,13 @@
-import React from 'react'
-import styled from 'styled-components'
 import { CheckCircle, Triangle } from 'react-feather'
+import styled from 'styled-components/macro'
 
-import { useActiveWeb3React } from '../../hooks'
-import { getEtherscanLink } from '../../utils'
-import { ExternalLink } from '../../theme'
+import { useActiveWeb3React } from '../../hooks/web3'
 import { useAllTransactions } from '../../state/transactions/hooks'
-import { RowFixed } from '../Row'
+import { ExternalLink } from '../../theme'
+import { ExplorerDataType, getExplorerLink } from '../../utils/getExplorerLink'
 import Loader from '../Loader'
-
-const TransactionWrapper = styled.div``
+import { RowFixed } from '../Row'
+import { TransactionSummary } from './TransactionSummary'
 
 const TransactionStatusText = styled.div`
   margin-right: 0.5rem;
@@ -40,22 +38,29 @@ export default function Transaction({ hash }: { hash: string }) {
   const { chainId } = useActiveWeb3React()
   const allTransactions = useAllTransactions()
 
-  const summary = allTransactions?.[hash]?.summary
-  const pending = !allTransactions?.[hash]?.receipt
-  const success =
-    !pending &&
-    (allTransactions[hash].receipt.status === 1 || typeof allTransactions[hash].receipt.status === 'undefined')
+  const tx = allTransactions?.[hash]
+  const info = tx?.info
+  const pending = !tx?.receipt
+  const success = !pending && tx && (tx.receipt?.status === 1 || typeof tx.receipt?.status === 'undefined')
+
+  if (!chainId) return null
 
   return (
-    <TransactionWrapper>
-      <TransactionState href={getEtherscanLink(chainId, hash, 'transaction')} pending={pending} success={success}>
+    <div>
+      <TransactionState
+        href={getExplorerLink(chainId, hash, ExplorerDataType.TRANSACTION)}
+        pending={pending}
+        success={success}
+      >
         <RowFixed>
-          <TransactionStatusText>{summary ?? hash} ↗</TransactionStatusText>
+          <TransactionStatusText>
+            <TransactionSummary info={info} /> ↗
+          </TransactionStatusText>
         </RowFixed>
         <IconWrapper pending={pending} success={success}>
           {pending ? <Loader /> : success ? <CheckCircle size="16" /> : <Triangle size="16" />}
         </IconWrapper>
       </TransactionState>
-    </TransactionWrapper>
+    </div>
   )
 }

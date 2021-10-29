@@ -1,15 +1,21 @@
 import useParsedQueryString from './useParsedQueryString'
 
 export enum Version {
-  v1 = 'v1',
-  v2 = 'v2'
+  v2 = 'V2',
+  v3 = 'V3',
 }
 
-export const DEFAULT_VERSION: Version = Version.v2
-
-export default function useToggledVersion(): Version {
+export default function useToggledVersion(): Version | undefined {
   const { use } = useParsedQueryString()
-  if (!use || typeof use !== 'string') return Version.v2
-  if (use.toLowerCase() === 'v1') return Version.v1
-  return DEFAULT_VERSION
+  if (typeof use !== 'string') {
+    return undefined
+  }
+  switch (use.toLowerCase()) {
+    case 'v2':
+      return Version.v2
+    case 'v3':
+      return Version.v3
+    default:
+      return undefined
+  }
 }

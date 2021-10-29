@@ -1,23 +1,25 @@
 import { createReducer } from '@reduxjs/toolkit'
+
+import { updateVersion } from '../global/actions'
 import {
   addTransaction,
   checkedTransaction,
   clearAllTransactions,
   finalizeTransaction,
-  SerializableTransactionReceipt
+  SerializableTransactionReceipt,
+  TransactionInfo,
 } from './actions'
 
 const now = () => new Date().getTime()
 
 export interface TransactionDetails {
   hash: string
-  approval?: { tokenAddress: string; spender: string }
-  summary?: string
   receipt?: SerializableTransactionReceipt
   lastCheckedBlockNumber?: number
   addedTime: number
   confirmedTime?: number
   from: string
+  info: TransactionInfo
 }
 
 export interface TransactionState {
@@ -28,14 +30,26 @@ export interface TransactionState {
 
 export const initialState: TransactionState = {}
 
-export default createReducer(initialState, builder =>
+export default createReducer(initialState, (builder) =>
   builder
-    .addCase(addTransaction, (transactions, { payload: { chainId, from, hash, approval, summary } }) => {
+    .addCase(updateVersion, (transactions) => {
+      // in case there are any transactions in the store with the old format, remove them
+      Object.keys(transactions).forEach((chainId) => {
+        const chainTransactions = transactions[chainId as unknown as number]
+        Object.keys(chainTransactions).forEach((hash) => {
+          if (!('info' in chainTransactions[hash])) {
+            // clear old transactions that don't have the right format
+            delete chainTransactions[hash]
+          }
+        })
+      })
+    })
+    .addCase(addTransaction, (transactions, { payload: { chainId, from, hash, info } }) => {
       if (transactions[chainId]?.[hash]) {
         throw Error('Attempted to add existing transaction.')
       }
       const txs = transactions[chainId] ?? {}
-      txs[hash] = { hash, approval, summary, from, addedTime: now() }
+      txs[hash] = { hash, info, from, addedTime: now() }
       transactions[chainId] = txs
     })
     .addCase(clearAllTransactions, (transactions, { payload: { chainId } }) => {

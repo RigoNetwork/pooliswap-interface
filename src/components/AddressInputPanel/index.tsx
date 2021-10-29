@@ -1,11 +1,14 @@
-import React, { useContext, useCallback } from 'react'
-import styled, { ThemeContext } from 'styled-components'
+// eslint-disable-next-line no-restricted-imports
+import { t, Trans } from '@lingui/macro'
+import { ReactNode, useCallback, useContext } from 'react'
+import styled, { ThemeContext } from 'styled-components/macro'
+
 import useENS from '../../hooks/useENS'
-import { useActiveWeb3React } from '../../hooks'
+import { useActiveWeb3React } from '../../hooks/web3'
 import { ExternalLink, TYPE } from '../../theme'
+import { ExplorerDataType, getExplorerLink } from '../../utils/getExplorerLink'
 import { AutoColumn } from '../Column'
 import { RowBetween } from '../Row'
-import { getEtherscanLink } from '../../utils'
 
 const InputPanel = styled.div`
   ${({ theme }) => theme.flexColumnNoWrap}
@@ -40,7 +43,7 @@ const Input = styled.input<{ error?: boolean }>`
   width: 0;
   background-color: ${({ theme }) => theme.bg1};
   transition: color 300ms ${({ error }) => (error ? 'step-end' : 'step-start')};
-  color: ${({ error, theme }) => (error ? theme.red1 : theme.primary1)};
+  color: ${({ error, theme }) => (error ? theme.red1 : theme.text1)};
   overflow: hidden;
   text-overflow: ellipsis;
   font-weight: 500;
@@ -65,17 +68,18 @@ const Input = styled.input<{ error?: boolean }>`
   }
 `
 
-interface Value {
-  address: string
-  name?: string
-}
-
 export default function AddressInputPanel({
   id,
+  className = 'recipient-address-input',
+  label,
+  placeholder,
   value,
-  onChange
+  onChange,
 }: {
   id?: string
+  className?: string
+  label?: ReactNode
+  placeholder?: string
   // the typed string value
   value: string
   // triggers whenever the typed value changes
@@ -87,7 +91,7 @@ export default function AddressInputPanel({
   const { address, loading, name } = useENS(value)
 
   const handleInput = useCallback(
-    event => {
+    (event) => {
       const input = event.target.value
       const withoutSpaces = input.replace(/\s+/g, '')
       onChange(withoutSpaces)
@@ -104,22 +108,25 @@ export default function AddressInputPanel({
           <AutoColumn gap="md">
             <RowBetween>
               <TYPE.black color={theme.text2} fontWeight={500} fontSize={14}>
-                Your Drago
+                {label ?? <Trans>Your Drago</Trans>}
               </TYPE.black>
-              {address && (
-                <ExternalLink href={getEtherscanLink(chainId, name ?? address, 'address')} style={{ fontSize: '14px' }}>
-                  (View on Etherscan)
+              {address && chainId && (
+                <ExternalLink
+                  href={getExplorerLink(chainId, name ?? address, ExplorerDataType.ADDRESS)}
+                  style={{ fontSize: '14px' }}
+                >
+                  <Trans>(View on Explorer)</Trans>
                 </ExternalLink>
               )}
             </RowBetween>
             <Input
-              className="recipient-address-input"
+              className={className}
               type="text"
               autoComplete="off"
               autoCorrect="off"
               autoCapitalize="off"
               spellCheck="false"
-              placeholder="RigoBlock Drago Address / ENS"
+              placeholder={placeholder ?? t`RigoBlock Drago Address or ENS name`}
               error={error}
               pattern="^(0x[a-fA-F0-9]{40})$"
               onChange={handleInput}

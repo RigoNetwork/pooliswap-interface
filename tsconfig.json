@@ -1,36 +1,9 @@
 {
+  "extends": "./tsconfig.base.json",
   "compilerOptions": {
-    "target": "es5",
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext"
-    ],
-    "allowJs": true,
-    "skipLibCheck": true,
-    "strict": false,
-    "forceConsistentCasingInFileNames": true,
-    "noEmit": true,
-    "esModuleInterop": true,
-    "module": "esnext",
-    "moduleResolution": "node",
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "jsx": "preserve",
-    "downlevelIteration": true,
-    "allowSyntheticDefaultImports": true,
-    "types": [
-      "react-spring",
-      "jest"
-    ]
+    "jsx": "react-jsx",
+    "baseUrl": "src"
   },
-  "exclude": [
-    "node_modules",
-    "cypress"
-  ],
-  "include": [
-    "**/*.js",
-    "**/*.ts",
-    "**/*.tsx"
-  ]
+  "exclude": ["node_modules", "cypress"],
+  "include": ["src/**/*"]
 }
